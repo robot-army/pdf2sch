@@ -50,8 +50,8 @@ _LIB_R = """\
       (on_board yes)
       (property "Reference" "R" (at 1.016 0 90) (effects (font (size 1.27 1.27))))
       (property "Value" "R" (at -1.016 0 90) (effects (font (size 1.27 1.27))))
-      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) hide yes))
-      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) hide yes))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
       (symbol "R_0_1"
         (rectangle (start -1.016 -2.032) (end 1.016 2.032)
           (stroke (width 0.2032) (type default))
@@ -78,8 +78,8 @@ _LIB_C = """\
       (on_board yes)
       (property "Reference" "C" (at 1.016 -0.254 0) (effects (font (size 1.27 1.27)) (justify left)))
       (property "Value" "C" (at 1.016 -2.032 0) (effects (font (size 1.27 1.27)) (justify left)))
-      (property "Footprint" "" (at 0.9652 -3.81 0) (effects (font (size 1.27 1.27)) hide yes))
-      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) hide yes))
+      (property "Footprint" "" (at 0.9652 -3.81 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
       (symbol "C_0_1"
         (polyline
           (pts (xy -2.032 -0.762) (xy 2.032 -0.762))
@@ -112,8 +112,8 @@ _LIB_L = """\
       (on_board yes)
       (property "Reference" "L" (at 3.048 0 90) (effects (font (size 1.27 1.27))))
       (property "Value" "L" (at -3.048 0 90) (effects (font (size 1.27 1.27))))
-      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) hide yes))
-      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) hide yes))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
       (symbol "L_0_1"
         (arc (start 0 -2.54) (mid -1.2573 -1.905) (end 0 -1.27)
           (stroke (width 0) (type default))
@@ -151,8 +151,8 @@ _LIB_U = """\
       (on_board yes)
       (property "Reference" "U" (at 0 0 0) (effects (font (size 1.27 1.27))))
       (property "Value" "U" (at 0 -2.54 0) (effects (font (size 1.27 1.27))))
-      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) hide yes))
-      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) hide yes))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
       (symbol "U_0_1"
         (rectangle (start -5.08 5.08) (end 5.08 -5.08)
           (stroke (width 0.254) (type default))
@@ -284,11 +284,11 @@ def _symbol_instances(lines: list[str], model: "SchematicModel", sheet_uuid: str
             "    )",
             f'    (property "Footprint" "{comp.footprint}"',
             f"      (at {_mm(x)} {_mm(y)} 0)",
-            "      (effects (font (size 1.27 1.27)) hide yes)",
+            "      (effects (font (size 1.27 1.27)) (hide yes))",
             "    )",
             '    (property "Datasheet" "~"',
             f"      (at {_mm(x)} {_mm(y)} 0)",
-            "      (effects (font (size 1.27 1.27)) hide yes)",
+            "      (effects (font (size 1.27 1.27)) (hide yes))",
             "    )",
             '    (instances (project ""',
             f'      (path "/{sheet_uuid}" (reference "{comp.ref}") (unit 1))',
@@ -335,7 +335,7 @@ def _net_labels(lines: list[str], model: "SchematicModel") -> None:
                 f'    (uuid "{_uid()}")',
                 '    (property "Intersheet References" ""',
                 "      (at 0 0 0)",
-                "      (effects (font (size 1.27 1.27)) hide yes)",
+                "      (effects (font (size 1.27 1.27)) (hide yes))",
                 "    )",
                 "  )",
             ]
