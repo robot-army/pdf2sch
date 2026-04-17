@@ -107,7 +107,17 @@ class PDF2SchDialog:
 
     def get_config(self):
         """Return a PipelineConfig built from the dialog values."""
-        PipelineConfig = _resolve_pipeline_config()
+        try:
+            import sys, os
+            _here = os.path.dirname(__file__)
+            _root = os.path.abspath(os.path.join(_here, "../../../.."))
+            if _root not in sys.path:
+                sys.path.insert(0, _root)
+            from pdf2sch import PipelineConfig  # type: ignore[import]
+        except ImportError:
+            # Fallback stub so the dialog works even when pdf2sch is not on path
+            class PipelineConfig:  # type: ignore[no-redef]
+                def __init__(self, **_kw): pass
         threshold = self._conf_slider.GetValue() / 100.0
         return PipelineConfig(low_confidence_threshold=threshold)
 

@@ -86,24 +86,13 @@ class PDF2SchPipeline:
         self.config = config or PipelineConfig()
 
     def _default_detector(self, pdf_source: str) -> DetectionOutput:
-        # Placeholder for CV + OCR + ML detection implementation.
-        # Uses a lightweight built-in guess so the loop is executable today.
-        if "cn0359" in pdf_source.lower():
-            return DetectionOutput(
-                symbols=[
-                    DetectedSymbol("U1", "ADuCM350", "QFN-56"),
-                    DetectedSymbol("R1", "10k", "0603"),
-                    DetectedSymbol("C1", "100n", "0603"),
-                ],
-                wires=[
-                    DetectedWire("VDD", ["U1.1", "R1.1"], confidence=0.98),
-                    DetectedWire("SENSE", ["U1.12", "R1.2", "C1.1"], confidence=0.62),
-                ],
-                text_items=["CN0359", "REV A", "SHEET 1 OF 2", "Analog Devices"],
-                pages=2,
-                hierarchical_blocks=["AFE", "MCU"],
-            )
-
+        # Delegate to the real pymupdf-based detector for PDF files.
+        try:
+            from pdf_detector import detect as _pdf_detect  # type: ignore[import]
+            return _pdf_detect(pdf_source)
+        except ImportError:
+            pass
+        # Fallback: empty output when pymupdf is not installed.
         return DetectionOutput(symbols=[], wires=[], text_items=[], pages=1)
 
     def detect(self, pdf_source: str) -> DetectionOutput:
@@ -126,7 +115,7 @@ class PDF2SchPipeline:
                 ref=s.ref,
                 value=s.value,
                 symbol=self._guess_symbol(s.ref, s.value),
-                footprint=s.footprint_hint or "Unknown",
+                footprint="",  # footprint assignment out of scope for PDF import
             )
             for s in detection.symbols
         ]

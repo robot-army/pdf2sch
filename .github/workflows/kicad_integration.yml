@@ -31,21 +31,27 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Generate sample schematic
-        run: python scripts/generate_sample_sch.py tests/fixtures/sample.kicad_sch
+      - name: Install Python dependencies
+        run: pip install pymupdf
+
+      - name: Generate stickhub schematic from PDF
+        run: |
+          python scripts/generate_sample_sch.py \
+            test-data/stickhub-pdf2sch/stickhub-pdf2sch.pdf \
+            /tmp/stickhub.kicad_sch
 
       - name: Verify schematic file was created
         run: |
-          test -f tests/fixtures/sample.kicad_sch
+          test -f /tmp/stickhub.kicad_sch
           echo "--- first 30 lines ---"
-          head -30 tests/fixtures/sample.kicad_sch
+          head -30 /tmp/stickhub.kicad_sch
 
       - name: Export schematic to SVG (kicad-cli)
         run: |
           mkdir -p screenshots
           kicad-cli sch export svg \
             --output screenshots/ \
-            tests/fixtures/sample.kicad_sch
+            /tmp/stickhub.kicad_sch
           echo "--- generated files ---"
           ls -lh screenshots/
 
@@ -72,6 +78,6 @@ jobs:
       - name: Upload generated schematic
         uses: actions/upload-artifact@v4
         with:
-          name: sample-schematic
-          path: tests/fixtures/sample.kicad_sch
+          name: stickhub-schematic
+          path: /tmp/stickhub.kicad_sch
           retention-days: 90

@@ -107,7 +107,8 @@ class TestPDF2SchPipeline(unittest.TestCase):
 
         self.assertEqual(model.components[0].symbol, "Device:L")
 
-    def test_missing_footprint_hint_falls_back_to_unknown(self):
+    def test_missing_footprint_hint_falls_back_to_empty(self):
+        """Footprint field must be empty – footprint assignment is out of scope."""
         pipeline = PDF2SchPipeline(
             detector=lambda _: DetectionOutput(
                 symbols=[DetectedSymbol("R1", "10k")],
@@ -118,7 +119,7 @@ class TestPDF2SchPipeline(unittest.TestCase):
 
         model = pipeline.build_model(pipeline.detect("a.pdf"))
 
-        self.assertEqual(model.components[0].footprint, "Unknown")
+        self.assertEqual(model.components[0].footprint, "")
 
     def test_review_model_raises_on_mismatched_review_metadata(self):
         pipeline = PDF2SchPipeline()

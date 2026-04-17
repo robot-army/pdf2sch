@@ -22,5 +22,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install Python dependencies
+        run: pip install pymupdf
+
       - name: Run all unit tests
         run: python -m pytest tests/ -v --tb=short
