@@ -625,11 +625,13 @@ def write_kicad_schematic(
     # Generate the sheet UUID here so it can be shared between the schematic
     # and the project file (which must reference the same root sheet UUID).
     sheet_uuid = _uid()
+    project_name = os.path.splitext(os.path.basename(output_path))[0]
     content = render_kicad_schematic(
         model,
         overlay_pdf=overlay_pdf,
         sym_lib_paths=sym_lib_paths,
         sheet_uuid=sheet_uuid,
+        project_name=project_name,
     )
     with open(output_path, "w", encoding="utf-8") as fh:
         fh.write(content)
@@ -647,12 +649,20 @@ def render_kicad_schematic(
     overlay_pdf: str | None = None,
     sym_lib_paths: list[str] | None = None,
     sheet_uuid: str | None = None,
+    project_name: str = "",
 ) -> str:
     """Return the .kicad_sch text for *model* without writing to disk.
 
     *sheet_uuid* may be supplied by the caller (e.g. ``write_kicad_schematic``
     shares the UUID with the companion ``.kicad_pro``).  If omitted a fresh
     UUID is generated automatically.
+
+    *project_name* sets the ``(project "name" ...)`` token inside every symbol
+    instance's ``(instances ...)`` block.  ``kicad-cli`` requires this to match
+    the base name of the companion ``.kicad_pro`` file (without extension).
+    ``write_kicad_schematic`` derives the correct name automatically; callers
+    of ``render_kicad_schematic`` that intend to write the result to a named
+    file should pass the matching project name explicitly.
     """
     n_components = len(model.components)
     paper, n_cols = _paper_and_cols(n_components)
@@ -663,7 +673,7 @@ def render_kicad_schematic(
     # Build the effective search path: caller-supplied dirs first, then defaults.
     all_sym_paths: list[str] = list(sym_lib_paths or []) + _KICAD_SYM_SEARCH_PATHS
     lib_defs = _lib_symbols(lines, model, all_sym_paths)
-    _symbol_instances(lines, model, sheet_uuid, lib_defs, n_cols)
+    _symbol_instances(lines, model, sheet_uuid, lib_defs, n_cols, project_name)
     _net_labels(lines, model, n_cols)
     if overlay_pdf is not None:
         _bitmap_overlay(lines, overlay_pdf)
@@ -943,6 +953,7 @@ def _symbol_instances(
     sheet_uuid: str,
     lib_defs: dict[str, str],
     n_cols: int,
+    project_name: str = "",
 ) -> None:
     for idx, comp in enumerate(model.components):
         x, y = _grid_position(idx, n_cols)
@@ -999,7 +1010,7 @@ def _symbol_instances(
             lines.append(f'    (pin "{pnum}" (uuid "{_uid()}"))')
         lines += [
             "    (instances",
-            '      (project ""',
+            f'      (project "{project_name}"',
             f'        (path "/{sheet_uuid}"',
             f'          (reference "{comp.ref}")',
             "          (unit 1)",

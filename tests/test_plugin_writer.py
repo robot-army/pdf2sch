@@ -451,6 +451,8 @@ class TestWriterOutput(unittest.TestCase):
             with open(sch_path) as fh:
                 sch_text = fh.read()
             self.assertIn(f'(uuid "{sheet_uuid}")', sch_text)
+            # The project name in the instances block must match the .kicad_pro basename.
+            self.assertIn('(project "test"', sch_text)
 
     def test_render_kicad_schematic_accepts_sheet_uuid(self):
         """render_kicad_schematic must use the supplied sheet_uuid."""
@@ -458,3 +460,13 @@ class TestWriterOutput(unittest.TestCase):
         fixed_uuid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
         out = render_kicad_schematic(model, sheet_uuid=fixed_uuid)
         self.assertIn(f'(uuid "{fixed_uuid}")', out)
+
+    def test_render_kicad_schematic_accepts_project_name(self):
+        """render_kicad_schematic must use the supplied project_name in instances."""
+        model = SchematicModel(
+            components=[Component("C1", "100n", "Device:C", "")],
+            nets=[],
+            pages=1,
+        )
+        out = render_kicad_schematic(model, project_name="mydesign")
+        self.assertIn('(project "mydesign"', out)
