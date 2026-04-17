@@ -270,7 +270,19 @@ def _lib_symbols(lines: list[str], model: "SchematicModel") -> None:
         if lib_id in seen:
             continue
         seen.add(lib_id)
-        defn = _LIB_DEFS.get(lib_id) or _LIB_U.replace('"Device:U"', f'"{lib_id}"')
+        if lib_id in _LIB_DEFS:
+            defn = _LIB_DEFS[lib_id]
+        else:
+            # Build a generic box using _LIB_U as a template.  We must update
+            # both the outer symbol name AND the inner sub-symbol names, because
+            # KiCad requires sub-symbols to be named "<base>_<demorgan>_<unit>"
+            # where <base> is the part of the lib_id after the colon.
+            base_name = lib_id.split(":", 1)[-1]
+            defn = (
+                _LIB_U
+                .replace('"Device:U"', f'"{lib_id}"')
+                .replace('"U_0_1"', f'"{base_name}_0_1"')
+            )
         lines.append(defn)
     lines.append("  )")
 
