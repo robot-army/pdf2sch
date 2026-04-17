@@ -37,6 +37,24 @@ class TestPDF2SchPipeline(unittest.TestCase):
 
         self.assertEqual(reviewed.nets[0].name, "REVIEW_REQUIRED_SIG")
 
+    def test_review_targets_correct_net_when_only_some_are_uncertain(self):
+        pipeline = PDF2SchPipeline(
+            detector=lambda _: DetectionOutput(
+                symbols=[DetectedSymbol("R1", "10k")],
+                wires=[
+                    DetectedWire("HIGH_CONF", ["R1.1"], confidence=0.95),
+                    DetectedWire("LOW_CONF", ["R1.2"], confidence=0.5),
+                ],
+                text_items=[],
+            )
+        )
+
+        model = pipeline.build_model(pipeline.detect("a.pdf"))
+        reviewed = pipeline.review_model(model, input_fn=lambda _: "n")
+
+        self.assertEqual(reviewed.nets[0].name, "HIGH_CONF")
+        self.assertEqual(reviewed.nets[1].name, "REVIEW_REQUIRED_LOW_CONF")
+
     def test_generates_kicad_content_with_pages_and_hierarchy(self):
         pipeline = PDF2SchPipeline(
             detector=lambda _: DetectionOutput(

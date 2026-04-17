@@ -68,6 +68,7 @@ class SchematicModel:
     pages: int
     hierarchical_blocks: list[str] = field(default_factory=list)
     review_questions: list[str] = field(default_factory=list)
+    review_net_indices: list[int] = field(default_factory=list)
 
 
 class PDF2SchPipeline:
@@ -127,19 +128,23 @@ class PDF2SchPipeline:
             for s in detection.symbols
         ]
         nets = [Net(name=w.net_name, nodes=w.nodes[:]) for w in detection.wires]
-        review_questions = [
-            self.config.review_question_template.format(
-                net_name=w.net_name, confidence=w.confidence, nodes=w.nodes
-            )
-            for w in detection.wires
-            if w.confidence < self.config.low_confidence_threshold
-        ]
+        review_questions: list[str] = []
+        review_net_indices: list[int] = []
+        for net_idx, w in enumerate(detection.wires):
+            if w.confidence < self.config.low_confidence_threshold:
+                review_questions.append(
+                    self.config.review_question_template.format(
+                        net_name=w.net_name, confidence=w.confidence, nodes=w.nodes
+                    )
+                )
+                review_net_indices.append(net_idx)
         return SchematicModel(
             components=components,
             nets=nets,
             pages=detection.pages,
             hierarchical_blocks=detection.hierarchical_blocks,
             review_questions=review_questions,
+            review_net_indices=review_net_indices,
         )
 
     def _guess_symbol(self, value: str) -> str:
@@ -159,10 +164,10 @@ class PDF2SchPipeline:
         input_fn: Callable[[str], str] = input,
     ) -> SchematicModel:
         # Netlist accuracy is prioritized: uncertain nets require explicit confirmation.
-        for idx, question in enumerate(model.review_questions):
+        for question, net_idx in zip(model.review_questions, model.review_net_indices):
             answer = input_fn(question + " ").strip().lower()
-            if answer in {"n", "no"} and idx < len(model.nets):
-                model.nets[idx].name = f"{self.config.review_required_prefix}{model.nets[idx].name}"
+            if answer in {"n", "no"} and net_idx < len(model.nets):
+                model.nets[net_idx].name = f"{self.config.review_required_prefix}{model.nets[net_idx].name}"
         return model
 
     def generate_kicad_schematic(self, model: SchematicModel) -> str:

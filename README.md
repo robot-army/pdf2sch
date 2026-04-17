@@ -4,7 +4,7 @@ Convert PDF schematics into KiCad schematics with a human-in-the-loop review loo
 
 ## Current MVP
 
-This repository now includes a minimal executable pipeline in `/home/runner/work/pdf2sch/pdf2sch/pdf2sch.py` that:
+This repository now includes a minimal executable pipeline in `pdf2sch.py` that:
 
 - Detects symbols/wires/text from a PDF source via a pluggable detector interface (placeholder for CV + OCR + ML)
 - Filters likely sheet border/title block text
@@ -18,7 +18,7 @@ This repository now includes a minimal executable pipeline in `/home/runner/work
 ## Run
 
 ```bash
-cd /home/runner/work/pdf2sch/pdf2sch
+cd <your-local-clone>/pdf2sch
 python pdf2sch.py
 ```
 
@@ -27,6 +27,6 @@ Enter a PDF path or URL when prompted (for example the CN0359 PDF URL from the i
 ## Test
 
 ```bash
-cd /home/runner/work/pdf2sch/pdf2sch
+cd <your-local-clone>/pdf2sch
 python -m unittest discover -s tests -v
 ```
