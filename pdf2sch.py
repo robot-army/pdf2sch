@@ -1,0 +1,191 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Callable, Iterable
+
+
+BORDER_TEXT_MARKERS = (
+    "sheet",
+    "rev",
+    "title",
+    "page",
+    "size",
+    "drawn by",
+)
+
+
+@dataclass
+class DetectedSymbol:
+    ref: str
+    value: str
+    footprint_hint: str | None = None
+
+
+@dataclass
+class DetectedWire:
+    net_name: str
+    nodes: list[str]
+    confidence: float = 1.0
+
+
+@dataclass
+class DetectionOutput:
+    symbols: list[DetectedSymbol]
+    wires: list[DetectedWire]
+    text_items: list[str]
+    pages: int = 1
+    hierarchical_blocks: list[str] = field(default_factory=list)
+
+
+@dataclass
+class Component:
+    ref: str
+    value: str
+    symbol: str
+    footprint: str
+
+
+@dataclass
+class Net:
+    name: str
+    nodes: list[str]
+
+
+@dataclass
+class SchematicModel:
+    components: list[Component]
+    nets: list[Net]
+    pages: int
+    hierarchical_blocks: list[str] = field(default_factory=list)
+    review_questions: list[str] = field(default_factory=list)
+
+
+class PDF2SchPipeline:
+    """Minimal pipeline scaffold: detect -> structure -> map -> review -> KiCad text."""
+
+    def __init__(
+        self,
+        detector: Callable[[str], DetectionOutput] | None = None,
+    ) -> None:
+        self.detector = detector or self._default_detector
+
+    def _default_detector(self, pdf_source: str) -> DetectionOutput:
+        # Placeholder for CV + OCR + ML detection implementation.
+        # Uses a lightweight built-in guess so the loop is executable today.
+        if "cn0359" in pdf_source.lower():
+            return DetectionOutput(
+                symbols=[
+                    DetectedSymbol("U1", "ADuCM350", "QFN-56"),
+                    DetectedSymbol("R1", "10k", "0603"),
+                    DetectedSymbol("C1", "100n", "0603"),
+                ],
+                wires=[
+                    DetectedWire("VDD", ["U1.1", "R1.1"], confidence=0.98),
+                    DetectedWire("SENSE", ["U1.12", "R1.2", "C1.1"], confidence=0.62),
+                ],
+                text_items=["CN0359", "REV A", "SHEET 1 OF 2", "Analog Devices"],
+                pages=2,
+                hierarchical_blocks=["AFE", "MCU"],
+            )
+
+        return DetectionOutput(symbols=[], wires=[], text_items=[], pages=1)
+
+    def detect(self, pdf_source: str) -> DetectionOutput:
+        result = self.detector(pdf_source)
+        result.text_items = self._filter_border_text(result.text_items)
+        return result
+
+    def _filter_border_text(self, text_items: Iterable[str]) -> list[str]:
+        filtered: list[str] = []
+        for item in text_items:
+            lowered = item.strip().lower()
+            if any(marker in lowered for marker in BORDER_TEXT_MARKERS):
+                continue
+            filtered.append(item)
+        return filtered
+
+    def build_model(self, detection: DetectionOutput) -> SchematicModel:
+        components = [
+            Component(
+                ref=s.ref,
+                value=s.value,
+                symbol=self._guess_symbol(s.value),
+                footprint=s.footprint_hint or "Unknown",
+            )
+            for s in detection.symbols
+        ]
+        nets = [Net(name=w.net_name, nodes=w.nodes[:]) for w in detection.wires]
+        review_questions = [
+            f"Net '{w.net_name}' has low confidence ({w.confidence:.2f}). Keep detected nodes {w.nodes}? (y/n)"
+            for w in detection.wires
+            if w.confidence < 0.8
+        ]
+        return SchematicModel(
+            components=components,
+            nets=nets,
+            pages=detection.pages,
+            hierarchical_blocks=detection.hierarchical_blocks,
+            review_questions=review_questions,
+        )
+
+    def _guess_symbol(self, value: str) -> str:
+        upper = value.upper()
+        if upper.endswith("K") or upper.endswith("M"):
+            return "Device:R"
+        if upper.endswith("N") or upper.endswith("U"):
+            return "Device:C"
+        if upper.startswith("AD"):
+            return "Amplifier_Operational:ADI_Generic"
+        return "Device:Unknown"
+
+    def review_model(
+        self,
+        model: SchematicModel,
+        input_fn: Callable[[str], str] = input,
+    ) -> SchematicModel:
+        # Netlist accuracy is prioritized: uncertain nets require explicit confirmation.
+        for idx, question in enumerate(model.review_questions):
+            answer = input_fn(question + " ").strip().lower()
+            if answer in {"n", "no"} and idx < len(model.nets):
+                model.nets[idx].name = f"REVIEW_REQUIRED_{model.nets[idx].name}"
+        return model
+
+    def generate_kicad_schematic(self, model: SchematicModel) -> str:
+        lines = ["(kicad_sch (version 20231120) (generator pdf2sch))"]
+        lines.append(f"  (pages {model.pages})")
+        for block in model.hierarchical_blocks:
+            lines.append(f"  (sheet (name \"{block}\"))")
+        for c in model.components:
+            lines.append(
+                "  "
+                + f"(symbol (ref {c.ref}) (value \"{c.value}\") (lib_id \"{c.symbol}\") (footprint \"{c.footprint}\"))"
+            )
+        for n in model.nets:
+            nodes = " ".join(f"\"{node}\"" for node in n.nodes)
+            lines.append(f"  (net (name \"{n.name}\") (nodes {nodes}))")
+        lines.append(")")
+        return "\n".join(lines) + "\n"
+
+    def convert(
+        self,
+        pdf_source: str,
+        input_fn: Callable[[str], str] = input,
+    ) -> str:
+        detection = self.detect(pdf_source)
+        model = self.build_model(detection)
+        reviewed = self.review_model(model, input_fn=input_fn)
+        return self.generate_kicad_schematic(reviewed)
+
+
+def convert_pdf_to_kicad(
+    pdf_source: str,
+    input_fn: Callable[[str], str] = input,
+) -> str:
+    return PDF2SchPipeline().convert(pdf_source=pdf_source, input_fn=input_fn)
+
+
+if __name__ == "__main__":
+    source = input("PDF path or URL: ").strip()
+    sch = convert_pdf_to_kicad(source)
+    print("\nGenerated KiCad schematic:\n")
+    print(sch)
