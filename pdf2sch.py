@@ -110,6 +110,19 @@ class PDF2SchPipeline:
         return filtered
 
     def build_model(self, detection: DetectionOutput) -> SchematicModel:
+        # Deduplicate refs: a multi-page PDF often shows the same component
+        # reference on every page it is connected to.  Keep the first occurrence
+        # but upgrade its value if a later occurrence has a longer (more
+        # informative) value string.
+        deduped: dict[str, "DetectedSymbol"] = {}
+        for sym in detection.symbols:
+            if sym.ref not in deduped:
+                deduped[sym.ref] = sym
+            else:
+                prev = deduped[sym.ref]
+                if len(sym.value.strip()) > len(prev.value.strip()):
+                    # Replace but keep insertion order by updating in-place.
+                    deduped[sym.ref] = sym
         components = [
             Component(
                 ref=s.ref,
@@ -117,7 +130,7 @@ class PDF2SchPipeline:
                 symbol=self._guess_symbol(s.ref, s.value),
                 footprint="",  # footprint assignment out of scope for PDF import
             )
-            for s in detection.symbols
+            for s in deduped.values()
         ]
         nets = [Net(name=w.net_name, nodes=w.nodes[:]) for w in detection.wires]
         review_questions: list[str] = []
@@ -140,27 +153,67 @@ class PDF2SchPipeline:
         )
 
     def _guess_symbol(self, ref: str, value: str) -> str:
-        ref_upper = ref.upper()
-        if ref_upper.startswith("R"):
+        import re as _re
+        # Extract the alphabetic prefix (strip trailing digits, e.g. "R12" → "R").
+        m = _re.match(r'^([A-Za-z]+)', ref)
+        pfx = m.group(1).upper() if m else ref.upper()
+        val_upper = value.upper()
+
+        # Passives
+        if pfx in {"R", "RN", "RP", "VR"}:
             return "Device:R"
-        if ref_upper.startswith("C"):
+        if pfx in {"C", "CP", "CAP"}:
             return "Device:C"
-        if ref_upper.startswith("L"):
+        if pfx in {"L", "FL"}:
             return "Device:L"
-        if ref_upper.startswith("D"):
-            # LED if value says so, otherwise generic diode
-            if value.upper() == "LED":
+        if pfx in {"FB"}:
+            return "Device:Ferrite_Bead"
+        if pfx in {"F", "FU"}:
+            return "Device:Fuse"
+
+        # Semiconductors
+        if pfx in {"D", "DS", "DZ", "VD", "CR"}:
+            if "LED" in val_upper:
                 return "Device:LED"
             return "Device:D"
-        if ref_upper.startswith("U"):
+        if pfx in {"Q", "T", "TR"}:
+            if "PNP" in val_upper:
+                return "Device:Q_PNP"
+            return "Device:Q_NPN"
+        if pfx in {"U", "IC", "A"}:
             return "Device:U"
-        upper = value.upper()
-        for prefix, symbol in self.config.value_symbol_prefix_rules:
-            if upper.startswith(prefix.upper()):
+
+        # Connectors / headers
+        if pfx in {"J", "JP", "P", "CN", "H", "E"}:
+            return "Connector_Generic:Conn_01x01"
+
+        # Crystals / oscillators
+        if pfx in {"Y", "XTAL"}:
+            return "Device:Crystal"
+
+        # Electromechanical
+        if pfx in {"K", "RLY"}:
+            return "Device:Relay_SPDT"
+        if pfx in {"SW", "S", "PB", "BTN"}:
+            return "Switch:SW_Push"
+        if pfx in {"M", "MOT"}:
+            return "Device:Motor"
+
+        # Miscellaneous
+        if pfx in {"TP"}:
+            return "Device:TestPoint"
+        if pfx in {"BT", "BAT", "G"}:
+            return "Device:Battery_Cell"
+        if pfx in {"MH"}:
+            return "MountingHole:MountingHole"
+
+        # Value-based fallbacks (when ref prefix is unrecognised)
+        for vprefix, symbol in self.config.value_symbol_prefix_rules:
+            if val_upper.startswith(vprefix.upper()):
                 return symbol
-        if upper.endswith("K") or upper.endswith("M"):
+        if val_upper.endswith("K") or val_upper.endswith("M"):
             return "Device:R"
-        if upper.endswith("N") or upper.endswith("U"):
+        if val_upper.endswith("N") or val_upper.endswith("U"):
             return "Device:C"
         return "Device:Unknown"
 

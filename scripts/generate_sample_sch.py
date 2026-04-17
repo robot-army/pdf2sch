@@ -84,7 +84,15 @@ def main(pdf_source: str | None = None, output_path: str | None = None) -> None:
     # Auto-accept all review questions so the script is non-interactive.
     model = pipeline.review_model(model, input_fn=lambda _: "y")
 
-    write_kicad_schematic(model, output_path)
+    # Build symbol library search paths: include the PDF's directory (so any
+    # project-specific .kicad_sym files can be picked up automatically) plus
+    # any sibling directories of the PDF that contain .kicad_sym files.
+    sym_lib_paths: list[str] = []
+    if pdf_source and pdf_source != "cn0359":
+        pdf_dir = os.path.dirname(os.path.abspath(pdf_source))
+        sym_lib_paths.append(pdf_dir)
+
+    write_kicad_schematic(model, output_path, sym_lib_paths=sym_lib_paths)
     print(f"Schematic written to: {output_path}")
     print(f"  Components: {len(model.components)}")
     print(f"  Nets:       {len(model.nets)}")

@@ -200,6 +200,224 @@ class TestWriterOutput(unittest.TestCase):
         self.assertIn("R1", out)
         self.assertIn("VDD", out)
 
+    # ------------------------------------------------------------------
+    # New symbol stubs
+    # ------------------------------------------------------------------
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_crystal_stub_has_two_pins(self):
+        model = SchematicModel(
+            components=[Component("Y1", "16MHz", "Device:Crystal", "")],
+            nets=[],
+            pages=1,
+        )
+        out = render_kicad_schematic(model)
+        self.assertIn('"Device:Crystal"', out)
+        self.assertEqual(out.count('(number "1"'), 1)
+        self.assertEqual(out.count('(number "2"'), 1)
+
+    def test_q_npn_stub_has_three_pins(self):
+        model = SchematicModel(
+            components=[Component("Q1", "2N3904", "Device:Q_NPN", "")],
+            nets=[],
+            pages=1,
+        )
+        out = render_kicad_schematic(model)
+        self.assertIn('"Device:Q_NPN"', out)
+        # Pins 1 (B), 2 (C), 3 (E)
+        self.assertEqual(out.count('(number "1"'), 1)
+        self.assertEqual(out.count('(number "2"'), 1)
+        self.assertEqual(out.count('(number "3"'), 1)
+
+    def test_connector_stub_has_one_pin(self):
+        model = SchematicModel(
+            components=[Component("J1", "Conn", "Connector_Generic:Conn_01x01", "")],
+            nets=[],
+            pages=1,
+        )
+        out = render_kicad_schematic(model)
+        self.assertIn('"Connector_Generic:Conn_01x01"', out)
+        self.assertEqual(out.count('(number "1"'), 1)
+
+    def test_fuse_stub_has_two_pins(self):
+        model = SchematicModel(
+            components=[Component("F1", "1A", "Device:Fuse", "")],
+            nets=[],
+            pages=1,
+        )
+        out = render_kicad_schematic(model)
+        self.assertIn('"Device:Fuse"', out)
+
+    def test_ferrite_bead_stub_has_two_pins(self):
+        model = SchematicModel(
+            components=[Component("FB1", "BLM18", "Device:Ferrite_Bead", "")],
+            nets=[],
+            pages=1,
+        )
+        out = render_kicad_schematic(model)
+        self.assertIn('"Device:Ferrite_Bead"', out)
+
+    # ------------------------------------------------------------------
+    # Adaptive paper / grid
+    # ------------------------------------------------------------------
+
+    def test_small_design_uses_a4(self):
+        model = SchematicModel(
+            components=[Component(f"R{i}", "10k", "Device:R", "") for i in range(5)],
+            nets=[],
+            pages=1,
+        )
+        out = render_kicad_schematic(model)
+        self.assertIn('(paper "A4")', out)
+
+    def test_medium_design_uses_a3(self):
+        model = SchematicModel(
+            components=[Component(f"R{i}", "10k", "Device:R", "") for i in range(50)],
+            nets=[],
+            pages=1,
+        )
+        out = render_kicad_schematic(model)
+        self.assertIn('(paper "A3")', out)
+
+    def test_large_design_uses_a2(self):
+        model = SchematicModel(
+            components=[Component(f"R{i}", "10k", "Device:R", "") for i in range(100)],
+            nets=[],
+            pages=1,
+        )
+        out = render_kicad_schematic(model)
+        self.assertIn('(paper "A2")', out)
+
+    def test_extra_large_design_uses_a1(self):
+        model = SchematicModel(
+            components=[Component(f"R{i}", "10k", "Device:R", "") for i in range(200)],
+            nets=[],
+            pages=1,
+        )
+        out = render_kicad_schematic(model)
+        self.assertIn('(paper "A1")', out)
+
+    # ------------------------------------------------------------------
+    # .kicad_sym library reader
+    # ------------------------------------------------------------------
+
+    def test_load_kicad_sym_file_parses_symbols(self):
+        """_load_kicad_sym_file must return a dict keyed by symbol name."""
+        import tempfile, os
+        _load_kicad_sym_file = _writer._load_kicad_sym_file
+        content = """\
+(kicad_symbol_lib
+  (version 20241209)
+  (generator "test")
+  (symbol "MyPart"
+    (in_bom yes)
+    (on_board yes)
+    (symbol "MyPart_1_1"
+      (pin passive line (at 0 0 0) (length 2.54)
+        (name "A" (effects (font (size 1.27 1.27))))
+        (number "1" (effects (font (size 1.27 1.27))))
+      )
+    )
+  )
+  (symbol "OtherPart"
+    (in_bom no)
+    (on_board yes)
+  )
+)
+"""
+        with tempfile.NamedTemporaryFile(
+            suffix=".kicad_sym", mode="w", delete=False, encoding="utf-8"
+        ) as f:
+            f.write(content)
+            fname = f.name
+        try:
+            result = _load_kicad_sym_file(fname)
+            self.assertIn("MyPart", result)
+            self.assertIn("OtherPart", result)
+            self.assertIn('(number "1"', result["MyPart"])
+        finally:
+            os.unlink(fname)
+
+    def test_find_symbol_in_libs_returns_prefixed_definition(self):
+        """_find_symbol_in_libs must prefix the outer symbol name."""
+        import tempfile, os
+        _find_symbol_in_libs = _writer._find_symbol_in_libs
+        content = """\
+(kicad_symbol_lib
+  (version 20241209)
+  (generator "test")
+  (symbol "WidgetA"
+    (in_bom yes)
+    (on_board yes)
+    (symbol "WidgetA_1_1"
+      (pin passive line (at 0 0 0) (length 2.54)
+        (name "~" (effects (font (size 1.27 1.27))))
+        (number "1" (effects (font (size 1.27 1.27))))
+      )
+    )
+  )
+)
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sym_file = os.path.join(tmpdir, "VendorLib.kicad_sym")
+            with open(sym_file, "w", encoding="utf-8") as f:
+                f.write(content)
+            result = _find_symbol_in_libs("VendorLib:WidgetA", [tmpdir])
+        self.assertIsNotNone(result)
+        # Outer name must be prefixed
+        self.assertIn('(symbol "VendorLib:WidgetA"', result)
+        # Inner sub-symbol name must NOT be prefixed
+        self.assertIn('"WidgetA_1_1"', result)
+
+    def test_find_symbol_in_libs_missing_lib_returns_none(self):
+        _find_symbol_in_libs = _writer._find_symbol_in_libs
+        result = _find_symbol_in_libs("NonExistent:Part", ["/tmp"])
+        self.assertIsNone(result)
+
+    def test_sym_lib_paths_used_for_unknown_symbols(self):
+        """Symbols found via sym_lib_paths are embedded instead of generic box."""
+        import tempfile, os
+        content = """\
+(kicad_symbol_lib
+  (version 20241209)
+  (generator "test")
+  (symbol "MySensor"
+    (in_bom yes)
+    (on_board yes)
+    (symbol "MySensor_1_1"
+      (pin passive line (at 0 0 0) (length 2.54)
+        (name "OUT" (effects (font (size 1.27 1.27))))
+        (number "1" (effects (font (size 1.27 1.27))))
+      )
+    )
+  )
+)
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sym_file = os.path.join(tmpdir, "SensorLib.kicad_sym")
+            with open(sym_file, "w", encoding="utf-8") as f:
+                f.write(content)
+            model = SchematicModel(
+                components=[Component("U5", "MySensor", "SensorLib:MySensor", "")],
+                nets=[],
+                pages=1,
+            )
+            out = render_kicad_schematic(model, sym_lib_paths=[tmpdir])
+        self.assertIn('(symbol "SensorLib:MySensor"', out)
+        # Inner sub-symbol name must be present unchanged
+        self.assertIn('"MySensor_1_1"', out)
+
+    # ------------------------------------------------------------------
+    # title_block pass-through
+    # ------------------------------------------------------------------
+
+    def test_title_block_emitted_when_present(self):
+        model = SchematicModel(
+            components=[],
+            nets=[],
+            pages=1,
+        )
+        model.title_block = {"title": "My Design", "company": "ACME"}
+        out = render_kicad_schematic(model)
+        self.assertIn("(title_block", out)
+        self.assertIn('(title "My Design")', out)
+        self.assertIn('(company "ACME")', out)

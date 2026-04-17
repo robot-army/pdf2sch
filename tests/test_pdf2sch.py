@@ -134,6 +134,94 @@ class TestPDF2SchPipeline(unittest.TestCase):
         with self.assertRaises(ValueError):
             pipeline.review_model(model, input_fn=lambda _: "y")
 
+    # ------------------------------------------------------------------
+    # _guess_symbol — ref-prefix coverage
+    # ------------------------------------------------------------------
+
+    def _pipeline_for(self, ref, value=""):
+        return PDF2SchPipeline(
+            detector=lambda _: DetectionOutput(
+                symbols=[DetectedSymbol(ref, value)],
+                wires=[],
+                text_items=[],
+            )
+        )
+
+    def _sym(self, ref, value=""):
+        p = self._pipeline_for(ref, value)
+        return p.build_model(p.detect("x.pdf")).components[0].symbol
+
+    def test_guess_Q_NPN(self):
+        self.assertEqual(self._sym("Q1"), "Device:Q_NPN")
+
+    def test_guess_Q_PNP(self):
+        self.assertEqual(self._sym("Q2", "BC557 PNP"), "Device:Q_PNP")
+
+    def test_guess_Y_crystal(self):
+        self.assertEqual(self._sym("Y1", "16MHz"), "Device:Crystal")
+
+    def test_guess_J_connector(self):
+        self.assertEqual(self._sym("J3"), "Connector_Generic:Conn_01x01")
+
+    def test_guess_JP_jumper(self):
+        self.assertEqual(self._sym("JP1"), "Connector_Generic:Conn_01x01")
+
+    def test_guess_FB_ferrite(self):
+        self.assertEqual(self._sym("FB1"), "Device:Ferrite_Bead")
+
+    def test_guess_F_fuse(self):
+        self.assertEqual(self._sym("F1"), "Device:Fuse")
+
+    def test_guess_SW_switch(self):
+        self.assertEqual(self._sym("SW1"), "Switch:SW_Push")
+
+    def test_guess_K_relay(self):
+        self.assertEqual(self._sym("K1"), "Device:Relay_SPDT")
+
+    def test_guess_D_led_value_match(self):
+        self.assertEqual(self._sym("D1", "LED"), "Device:LED")
+
+    def test_guess_D_diode(self):
+        self.assertEqual(self._sym("D2", "1N4148"), "Device:D")
+
+    # ------------------------------------------------------------------
+    # Ref deduplication in build_model
+    # ------------------------------------------------------------------
+
+    def test_duplicate_refs_are_deduplicated(self):
+        """build_model should keep only the first occurrence of each ref."""
+        pipeline = PDF2SchPipeline(
+            detector=lambda _: DetectionOutput(
+                symbols=[
+                    DetectedSymbol("R1", "10k"),
+                    DetectedSymbol("C1", "100n"),
+                    DetectedSymbol("R1", "10k"),   # duplicate
+                ],
+                wires=[],
+                text_items=[],
+            )
+        )
+        model = pipeline.build_model(pipeline.detect("x.pdf"))
+        self.assertEqual(len(model.components), 2)
+        refs = [c.ref for c in model.components]
+        self.assertEqual(refs, ["R1", "C1"])
+
+    def test_duplicate_ref_upgrades_to_more_informative_value(self):
+        """When a later occurrence of a ref has a longer value, that value wins."""
+        pipeline = PDF2SchPipeline(
+            detector=lambda _: DetectionOutput(
+                symbols=[
+                    DetectedSymbol("U1", ""),          # first: empty value
+                    DetectedSymbol("U1", "ATmega328"),  # second: informative
+                ],
+                wires=[],
+                text_items=[],
+            )
+        )
+        model = pipeline.build_model(pipeline.detect("x.pdf"))
+        self.assertEqual(len(model.components), 1)
+        self.assertEqual(model.components[0].value, "ATmega328")
+
 
 if __name__ == "__main__":
     unittest.main()

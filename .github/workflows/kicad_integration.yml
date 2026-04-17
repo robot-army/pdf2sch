@@ -8,6 +8,9 @@ on:
   # Allow manual re-runs to regenerate screenshots
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   kicad-screenshot:
     name: Generate schematic + export SVG screenshots
@@ -89,6 +92,27 @@ jobs:
           echo "--- generated files ---"
           ls -lh screenshots/
 
+      # ── cn0359 (Analog Devices eval board, multi-page, ~100 components) ──
+      - name: Generate cn0359 schematic from PDF
+        run: |
+          python scripts/generate_sample_sch.py \
+            test-data/cn0359-AnalogDevices-pdf2sch/eval-cn0359-eb1z-padsschematic-reva.pdf \
+            /tmp/cn0359.kicad_sch
+
+      - name: Verify cn0359 schematic was created
+        run: |
+          test -f /tmp/cn0359.kicad_sch
+          echo "--- first 30 lines ---"
+          head -30 /tmp/cn0359.kicad_sch
+
+      - name: Export cn0359 to SVG (kicad-cli)
+        run: |
+          kicad-cli sch export svg \
+            --output screenshots/ \
+            /tmp/cn0359.kicad_sch
+          echo "--- generated files ---"
+          ls -lh screenshots/
+
       - name: Convert SVGs to PNG for preview (ImageMagick)
         run: |
           sudo apt-get install -y --no-install-recommends imagemagick
@@ -116,4 +140,5 @@ jobs:
           path: |
             /tmp/realsmall.kicad_sch
             /tmp/stickhub.kicad_sch
+            /tmp/cn0359.kicad_sch
           retention-days: 90

@@ -330,6 +330,204 @@ _LIB_PWR_5V = """\
       (embedded_fonts no)
     )"""
 
+_LIB_CRYSTAL = """\
+    (symbol "Device:Crystal"
+      (pin_numbers (hide yes))
+      (pin_names (offset 1.016) (hide yes))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "Y" (at 0 3.302 0) (effects (font (size 1.27 1.27))))
+      (property "Value" "Crystal" (at 0 -3.302 0) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "Crystal oscillator" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol "Crystal_0_1"
+        (rectangle (start -1.016 -2.54) (end 1.016 2.54)
+          (stroke (width 0.254) (type default))
+          (fill (type background))
+        )
+      )
+      (symbol "Crystal_1_1"
+        (pin passive line (at 0 3.81 270) (length 1.27)
+          (name "1" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 0 -3.81 90) (length 1.27)
+          (name "2" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))
+        )
+      )
+      (embedded_fonts no)
+    )"""
+
+_LIB_Q_NPN = """\
+    (symbol "Device:Q_NPN"
+      (pin_numbers (hide yes))
+      (pin_names (offset 1.016))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "Q" (at 5.08 1.27 0) (effects (font (size 1.27 1.27))))
+      (property "Value" "Q_NPN" (at 5.08 -1.27 0) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "NPN bipolar transistor" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol "Q_NPN_0_1"
+        (rectangle (start -2.54 -3.81) (end 2.54 3.81)
+          (stroke (width 0.254) (type default))
+          (fill (type background))
+        )
+      )
+      (symbol "Q_NPN_1_1"
+        (pin input line (at -5.08 0 0) (length 2.54)
+          (name "B" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 0 5.08 270) (length 1.27)
+          (name "C" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 0 -5.08 90) (length 1.27)
+          (name "E" (effects (font (size 1.27 1.27))))
+          (number "3" (effects (font (size 1.27 1.27))))
+        )
+      )
+      (embedded_fonts no)
+    )"""
+
+_LIB_Q_PNP = """\
+    (symbol "Device:Q_PNP"
+      (pin_numbers (hide yes))
+      (pin_names (offset 1.016))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "Q" (at 5.08 1.27 0) (effects (font (size 1.27 1.27))))
+      (property "Value" "Q_PNP" (at 5.08 -1.27 0) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "PNP bipolar transistor" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol "Q_PNP_0_1"
+        (rectangle (start -2.54 -3.81) (end 2.54 3.81)
+          (stroke (width 0.254) (type default))
+          (fill (type background))
+        )
+      )
+      (symbol "Q_PNP_1_1"
+        (pin input line (at -5.08 0 0) (length 2.54)
+          (name "B" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 0 -5.08 90) (length 1.27)
+          (name "C" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 0 5.08 270) (length 1.27)
+          (name "E" (effects (font (size 1.27 1.27))))
+          (number "3" (effects (font (size 1.27 1.27))))
+        )
+      )
+      (embedded_fonts no)
+    )"""
+
+_LIB_FUSE = """\
+    (symbol "Device:Fuse"
+      (pin_numbers (hide yes))
+      (pin_names (offset 1.016) (hide yes))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "F" (at 2.032 0 90) (effects (font (size 1.27 1.27))))
+      (property "Value" "Fuse" (at 0 0 90) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "Fuse" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol "Fuse_0_1"
+        (arc (start 0 -2.032) (mid -1.016 -1.016) (end 0 0)
+          (stroke (width 0) (type default))
+          (fill (type none))
+        )
+        (arc (start 0 0) (mid -1.016 1.016) (end 0 2.032)
+          (stroke (width 0) (type default))
+          (fill (type none))
+        )
+        (polyline
+          (pts (xy 0 -2.032) (xy 0 2.032))
+          (stroke (width 0) (type default))
+          (fill (type none))
+        )
+      )
+      (symbol "Fuse_1_1"
+        (pin passive line (at 0 3.81 270) (length 1.778)
+          (name "~" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 0 -3.81 90) (length 1.778)
+          (name "~" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))
+        )
+      )
+      (embedded_fonts no)
+    )"""
+
+_LIB_FERRITE = """\
+    (symbol "Device:Ferrite_Bead"
+      (pin_numbers (hide yes))
+      (pin_names (offset 0) (hide yes))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "FB" (at 2.032 0 90) (effects (font (size 1.27 1.27))))
+      (property "Value" "Ferrite_Bead" (at 0 0 90) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "Ferrite bead" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol "Ferrite_Bead_0_1"
+        (rectangle (start -1.016 -2.54) (end 1.016 2.54)
+          (stroke (width 0.254) (type default))
+          (fill (type none))
+        )
+      )
+      (symbol "Ferrite_Bead_1_1"
+        (pin passive line (at 0 3.81 270) (length 1.27)
+          (name "~" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 0 -3.81 90) (length 1.27)
+          (name "~" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))
+        )
+      )
+      (embedded_fonts no)
+    )"""
+
+_LIB_CONN_1 = """\
+    (symbol "Connector_Generic:Conn_01x01"
+      (pin_names (offset 1.016) (hide yes))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "J" (at 0 2.54 0) (effects (font (size 1.27 1.27))))
+      (property "Value" "Conn_01x01" (at 0 -2.54 0) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "Generic connector, single row, 01x01" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol "Conn_01x01_0_1"
+        (rectangle (start -1.016 -1.016) (end 1.016 1.016)
+          (stroke (width 0.254) (type default))
+          (fill (type background))
+        )
+      )
+      (symbol "Conn_01x01_1_1"
+        (pin passive line (at -3.81 0 0) (length 2.794)
+          (name "Pin_1" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
+        )
+      )
+      (embedded_fonts no)
+    )"""
+
 # Map lib_id → embedded definition.
 # NOTE: "Device:Unknown" is intentionally *not* listed here so that the
 # fallback in _lib_symbols() replaces the symbol name correctly.  Listing it
@@ -342,6 +540,12 @@ _LIB_DEFS: dict[str, str] = {
     "Device:LED": _LIB_LED,
     "Device:D": _LIB_D,
     "Device:U": _LIB_U,
+    "Device:Crystal": _LIB_CRYSTAL,
+    "Device:Q_NPN": _LIB_Q_NPN,
+    "Device:Q_PNP": _LIB_Q_PNP,
+    "Device:Fuse": _LIB_FUSE,
+    "Device:Ferrite_Bead": _LIB_FERRITE,
+    "Connector_Generic:Conn_01x01": _LIB_CONN_1,
     "power:GND": _LIB_GND,
     "power:+5V": _LIB_PWR_5V,
 }
@@ -350,14 +554,17 @@ _LIB_DEFS: dict[str, str] = {
 # TODOs
 # ---------------------------------------------------------------------------
 #
-# TODO: Symbol library lookup
-#   Instead of embedding a small static set of lib definitions, query KiCad's
-#   installed standard library (kicad-symbols, typically at
-#   /usr/share/kicad/symbols/*.kicad_sym) when available, then fall back to
-#   community libraries, then to AI-assisted generation.  The dialog should let
-#   the user confirm or override the chosen symbol before the schematic is
-#   written.  Pin counts, pin names, and graphical shape will then always be
-#   authoritative rather than approximated.
+# TODO: Symbol library lookup — AI + dialog integration
+#   The current built-in stubs cover common passive/active prefixes.  The next
+#   step is a three-stage lookup:
+#     1. System KiCad library (/usr/share/kicad/symbols/*.kicad_sym) – uses the
+#        real graphical shape and pin names.
+#     2. Project-local .kicad_sym files (discovered from sym-lib-table or by
+#        scanning the PDF's directory).
+#     3. AI-assisted generation for anything not found in (1)/(2).
+#   The plugin dialog should let the user confirm or correct the guessed symbol
+#   before write_kicad_schematic() is called, so mistakes are caught before
+#   they propagate into the schematic.
 #
 # TODO: Plugin dialog screenshots in CI
 #   End-to-end testing of the KiCad plugin UI (the wx dialog, file picker,
@@ -380,18 +587,38 @@ _LIB_DEFS: dict[str, str] = {
 # Public API
 # ---------------------------------------------------------------------------
 
+# Default locations to search for installed KiCad symbol libraries.
+_KICAD_SYM_SEARCH_PATHS: list[str] = [
+    "/usr/share/kicad/symbols",
+    "/usr/local/share/kicad/symbols",
+    os.path.join(
+        os.environ.get("APPDATA", ""),
+        "kicad", "9.0", "symbols",
+    ),
+]
+
+
 def write_kicad_schematic(
     model: "SchematicModel",
     output_path: str,
     *,
     overlay_pdf: str | None = None,
+    sym_lib_paths: list[str] | None = None,
 ) -> None:
     """Write *model* to a KiCad 9 .kicad_sch file at *output_path*.
 
     If *overlay_pdf* is given the overlay module is called to rasterise and
     embed the first page as a background bitmap (requires pypdfium2).
+
+    *sym_lib_paths* is an optional list of directories that are searched for
+    ``.kicad_sym`` library files (before the system-wide defaults).  This lets
+    callers include a project-specific library directory alongside the PDF so
+    that symbols defined there are embedded verbatim rather than approximated
+    by the built-in stubs.
     """
-    content = render_kicad_schematic(model, overlay_pdf=overlay_pdf)
+    content = render_kicad_schematic(
+        model, overlay_pdf=overlay_pdf, sym_lib_paths=sym_lib_paths
+    )
     with open(output_path, "w", encoding="utf-8") as fh:
         fh.write(content)
 
@@ -400,14 +627,19 @@ def render_kicad_schematic(
     model: "SchematicModel",
     *,
     overlay_pdf: str | None = None,
+    sym_lib_paths: list[str] | None = None,
 ) -> str:
     """Return the .kicad_sch text for *model* without writing to disk."""
+    n_components = len(model.components)
+    paper, n_cols = _paper_and_cols(n_components)
     sheet_uuid = _uid()
     lines: list[str] = []
-    _header(lines, model.pages, sheet_uuid)
-    lib_defs = _lib_symbols(lines, model)
-    _symbol_instances(lines, model, sheet_uuid, lib_defs)
-    _net_labels(lines, model)
+    _header(lines, model, sheet_uuid, paper)
+    # Build the effective search path: caller-supplied dirs first, then defaults.
+    all_sym_paths: list[str] = list(sym_lib_paths or []) + _KICAD_SYM_SEARCH_PATHS
+    lib_defs = _lib_symbols(lines, model, all_sym_paths)
+    _symbol_instances(lines, model, sheet_uuid, lib_defs, n_cols)
+    _net_labels(lines, model, n_cols)
     if overlay_pdf is not None:
         _bitmap_overlay(lines, overlay_pdf)
     _sheet_instances(lines, model.pages)
@@ -455,19 +687,146 @@ def _extract_pin_numbers(lib_def: str) -> list[str]:
     return list(seen)
 
 
-def _header(lines: list[str], pages: int, sheet_uuid: str) -> None:
+def _paper_and_cols(n_components: int) -> tuple[str, int]:
+    """Choose paper size and grid column count based on component count."""
+    if n_components <= 30:
+        return "A4", 6
+    if n_components <= 72:
+        return "A3", 8
+    if n_components <= 144:
+        return "A2", 12
+    if n_components <= 288:
+        return "A1", 16
+    return "A0", 20
+
+
+def _header(lines: list[str], model: "SchematicModel", sheet_uuid: str, paper: str) -> None:
     lines += [
         "(kicad_sch",
         f"  (version {_FORMAT_VERSION})",
         f'  (generator "{_GENERATOR}")',
         f'  (generator_version "{_GENERATOR_VERSION}")',
         f'  (uuid "{sheet_uuid}")',
-        '  (paper "A4")',
+        f'  (paper "{paper}")',
     ]
+    tb = getattr(model, "title_block", None)
+    if tb:
+        lines.append("  (title_block")
+        for key, val in tb.items():
+            lines.append(f'    ({key} "{val}")')
+        lines.append("  )")
 
 
-def _lib_symbols(lines: list[str], model: "SchematicModel") -> dict[str, str]:
+def _load_kicad_sym_file(path: str) -> dict[str, str]:
+    """Parse a ``.kicad_sym`` file and return ``{symbol_name: raw_text}``.
+
+    The returned text for each symbol is the verbatim S-expression block as it
+    appears in the file (tabs, newlines and all) starting with ``(symbol "NAME"``
+    and ending with the matching closing parenthesis.  Callers are responsible
+    for prefixing the outer name with the library name before embedding.
+
+    Returns an empty dict if the file cannot be read.
+    """
+    import re as _re
+    try:
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError:
+        return {}
+
+    symbols: dict[str, str] = {}
+    i = 0
+    n = len(text)
+    depth = 0
+    sym_start = -1
+    sym_name: str | None = None
+    in_string = False
+    escape_next = False
+
+    while i < n:
+        c = text[i]
+        if escape_next:
+            escape_next = False
+            i += 1
+            continue
+        if in_string:
+            if c == "\\":
+                escape_next = True
+            elif c == '"':
+                in_string = False
+        else:
+            if c == '"':
+                in_string = True
+            elif c == "(":
+                if depth == 1:
+                    # Are we opening a top-level (symbol "NAME" ...) block?
+                    m = _re.match(r'\(\s*symbol\s+"([^"]+)"', text[i : i + 300])
+                    if m:
+                        sym_name = m.group(1)
+                        sym_start = i
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 1 and sym_start >= 0 and sym_name is not None:
+                    symbols[sym_name] = text[sym_start : i + 1]
+                    sym_start = -1
+                    sym_name = None
+        i += 1
+
+    return symbols
+
+
+def _find_symbol_in_libs(lib_id: str, search_paths: list[str]) -> str | None:
+    """Return an embeddable symbol definition text for *lib_id*.
+
+    Searches *search_paths* in order for a file named ``<lib_name>.kicad_sym``
+    (where *lib_name* is the part of *lib_id* before the colon).  When found,
+    the raw symbol block is returned with only the outer symbol name prefixed
+    to ``"lib_name:sym_name"``; the inner sub-symbol names (``sym_name_X_Y``)
+    are left unchanged because KiCad uses the bare base name there.
+
+    Returns ``None`` if the symbol is not found in any of the search paths.
+    """
+    import re as _re
+    if ":" not in lib_id:
+        return None
+    lib_name, sym_name = lib_id.split(":", 1)
+    for search_dir in search_paths:
+        sym_file = os.path.join(search_dir, f"{lib_name}.kicad_sym")
+        if not os.path.isfile(sym_file):
+            continue
+        try:
+            sym_map = _load_kicad_sym_file(sym_file)
+        except Exception:
+            continue
+        if sym_name not in sym_map:
+            continue
+        raw = sym_map[sym_name]
+        # Replace only the OUTER (first) occurrence of (symbol "sym_name")
+        # with the fully-qualified name.  Inner sub-symbols like
+        # (symbol "sym_name_0_1") are different strings so they are untouched.
+        prefixed = _re.sub(
+            r'\(\s*symbol\s+"' + _re.escape(sym_name) + r'"',
+            f'(symbol "{lib_id}"',
+            raw,
+            count=1,
+        )
+        return prefixed
+    return None
+
+
+def _lib_symbols(
+    lines: list[str],
+    model: "SchematicModel",
+    sym_lib_paths: list[str],
+) -> dict[str, str]:
     """Emit the (lib_symbols ...) block and return a mapping lib_id → definition string.
+
+    Resolution order for each lib_id:
+    1. Built-in stubs (``_LIB_DEFS``).
+    2. Files found in *sym_lib_paths* via ``_find_symbol_in_libs``.
+    3. Generic ``power:`` derivation from the +5V template.
+    4. Generic IC box (``_LIB_U`` template).
 
     The returned map is used by _symbol_instances so it can call
     _extract_pin_numbers() on the actual definition rather than a separate
@@ -481,37 +840,42 @@ def _lib_symbols(lines: list[str], model: "SchematicModel") -> dict[str, str]:
             continue
         if lib_id in _LIB_DEFS:
             defn = _LIB_DEFS[lib_id]
-        elif lib_id.startswith("power:"):
-            # Generic power symbol: derive from the +5V template.
-            pwr_name = lib_id[len("power:"):]
-            safe = pwr_name.replace("+", "").replace("-", "").replace(".", "_")
-            defn = (
-                _LIB_PWR_5V
-                .replace('"power:+5V"', f'"{lib_id}"')
-                .replace('"+5V"', f'"{pwr_name}"')
-                .replace('"+5V_0_1"', f'"{safe}_0_1"')
-                .replace('"+5V_1_1"', f'"{safe}_1_1"')
-            )
         else:
-            # Build a generic box using _LIB_U as a template.  We must update
-            # both the outer symbol name AND the inner sub-symbol names, because
-            # KiCad requires sub-symbols to be named "<base>_<demorgan>_<unit>"
-            # where <base> is the part of the lib_id after the colon.
-            base_name = lib_id.split(":", 1)[-1]
-            defn = (
-                _LIB_U
-                .replace('"Device:U"', f'"{lib_id}"')
-                .replace('"U_0_1"', f'"{base_name}_0_1"')
-            )
+            # Try system / project library files.
+            defn = _find_symbol_in_libs(lib_id, sym_lib_paths)
+            if defn is None:
+                if lib_id.startswith("power:"):
+                    # Generic power symbol: derive from the +5V template.
+                    pwr_name = lib_id[len("power:"):]
+                    safe = pwr_name.replace("+", "").replace("-", "").replace(".", "_")
+                    defn = (
+                        _LIB_PWR_5V
+                        .replace('"power:+5V"', f'"{lib_id}"')
+                        .replace('"+5V"', f'"{pwr_name}"')
+                        .replace('"+5V_0_1"', f'"{safe}_0_1"')
+                        .replace('"+5V_1_1"', f'"{safe}_1_1"')
+                    )
+                else:
+                    # Build a generic box using _LIB_U as a template.  We must
+                    # update both the outer symbol name AND the inner sub-symbol
+                    # names, because KiCad requires sub-symbols to be named
+                    # "<base>_<demorgan>_<unit>" where <base> is the part of
+                    # the lib_id after the colon.
+                    base_name = lib_id.split(":", 1)[-1]
+                    defn = (
+                        _LIB_U
+                        .replace('"Device:U"', f'"{lib_id}"')
+                        .replace('"U_0_1"', f'"{base_name}_0_1"')
+                    )
         seen[lib_id] = defn
         lines.append(defn)
     lines.append("  )")
     return seen
 
 
-def _grid_position(index: int) -> tuple[float, float]:
-    col = index % _GRID_COLS
-    row = index // _GRID_COLS
+def _grid_position(index: int, n_cols: int) -> tuple[float, float]:
+    col = index % n_cols
+    row = index // n_cols
     x = _ORIGIN_X_MM + col * _COL_SPACING_MM
     y = _ORIGIN_Y_MM + row * _ROW_SPACING_MM
     return x, y
@@ -522,9 +886,10 @@ def _symbol_instances(
     model: "SchematicModel",
     sheet_uuid: str,
     lib_defs: dict[str, str],
+    n_cols: int,
 ) -> None:
     for idx, comp in enumerate(model.components):
-        x, y = _grid_position(idx)
+        x, y = _grid_position(idx, n_cols)
         sym_uuid = _uid()
         lines += [
             "  (symbol",
@@ -589,7 +954,7 @@ def _symbol_instances(
         ]
 
 
-def _net_labels(lines: list[str], model: "SchematicModel") -> None:
+def _net_labels(lines: list[str], model: "SchematicModel", n_cols: int) -> None:
     """Place a global net label near every component that appears in a net."""
     # Build a mapping: ref → list[(net_name, pin_number)]
     ref_pins: dict[str, list[tuple[str, str]]] = {}
@@ -609,7 +974,7 @@ def _net_labels(lines: list[str], model: "SchematicModel") -> None:
         idx = comp_idx.get(ref)
         if idx is None:
             continue
-        x, y = _grid_position(idx)
+        x, y = _grid_position(idx, n_cols)
         for pin_offset, (net_name, _pin) in enumerate(pin_entries):
             label_x = x + _LABEL_OFFSET_MM
             label_y = y - _LABEL_OFFSET_MM + pin_offset * 2.54
