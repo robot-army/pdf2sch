@@ -176,6 +176,8 @@ class PDF2SchPipeline:
         input_fn: Callable[[str], str] = input,
     ) -> SchematicModel:
         # Netlist accuracy is prioritized: uncertain nets require explicit confirmation.
+        if len(model.review_questions) != len(model.review_net_indices):
+            raise ValueError("review_questions and review_net_indices must have equal length")
         for question, net_idx in zip(model.review_questions, model.review_net_indices):
             answer = input_fn(question + " ").strip().lower()
             if answer in {"n", "no"}:

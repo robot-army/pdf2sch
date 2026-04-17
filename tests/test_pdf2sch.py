@@ -6,6 +6,7 @@ from pdf2sch import (
     DetectedWire,
     PDF2SchPipeline,
     PipelineConfig,
+    SchematicModel,
 )
 
 
@@ -118,6 +119,19 @@ class TestPDF2SchPipeline(unittest.TestCase):
         model = pipeline.build_model(pipeline.detect("a.pdf"))
 
         self.assertEqual(model.components[0].footprint, "Unknown")
+
+    def test_review_model_raises_on_mismatched_review_metadata(self):
+        pipeline = PDF2SchPipeline()
+        model = SchematicModel(
+            components=[],
+            nets=[],
+            pages=1,
+            review_questions=["q1"],
+            review_net_indices=[],
+        )
+
+        with self.assertRaises(ValueError):
+            pipeline.review_model(model, input_fn=lambda _: "y")
 
 
 if __name__ == "__main__":
