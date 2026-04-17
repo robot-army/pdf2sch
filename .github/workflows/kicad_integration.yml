@@ -1,0 +1,77 @@
+name: KiCad 9 Integration & Screenshots
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  # Allow manual re-runs to regenerate screenshots
+  workflow_dispatch:
+
+jobs:
+  kicad-screenshot:
+    name: Generate schematic + export SVG screenshots
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install KiCad 9
+        run: |
+          sudo add-apt-repository --yes ppa:kicad/kicad-9.0-releases
+          sudo apt-get update
+          # kicad-cli is part of the main kicad package; install without
+          # recommended extras to keep the download size manageable.
+          sudo apt-get install -y --no-install-recommends kicad
+
+      # KiCad 9 ships its own Python interpreter.  We use the system Python for
+      # the generation step (pure Python, no pcbnew calls) so we don't need to
+      # locate KiCad's bundled interpreter.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Generate sample schematic
+        run: python scripts/generate_sample_sch.py tests/fixtures/sample.kicad_sch
+
+      - name: Verify schematic file was created
+        run: |
+          test -f tests/fixtures/sample.kicad_sch
+          echo "--- first 30 lines ---"
+          head -30 tests/fixtures/sample.kicad_sch
+
+      - name: Export schematic to SVG (kicad-cli)
+        run: |
+          mkdir -p screenshots
+          kicad-cli sch export svg \
+            --output screenshots/ \
+            tests/fixtures/sample.kicad_sch
+          echo "--- generated files ---"
+          ls -lh screenshots/
+
+      - name: Convert SVG to PNG for preview (ImageMagick)
+        run: |
+          sudo apt-get install -y --no-install-recommends imagemagick
+          for svg in screenshots/*.svg; do
+            png="${svg%.svg}.png"
+            convert -density 150 -background white -alpha remove "$svg" "$png" \
+              && echo "Converted $svg → $png" \
+              || echo "WARNING: failed to convert $svg"
+          done
+
+      - name: Upload schematic screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: schematic-screenshots
+          path: |
+            screenshots/*.svg
+            screenshots/*.png
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload generated schematic
+        uses: actions/upload-artifact@v4
+        with:
+          name: sample-schematic
+          path: tests/fixtures/sample.kicad_sch
+          retention-days: 90
