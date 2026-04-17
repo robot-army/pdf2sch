@@ -134,9 +134,26 @@ jobs:
           sudo apt-get install -y --no-install-recommends imagemagick
           for svg in screenshots/*.svg; do
             png="${svg%.svg}.png"
-            convert -density 150 -background white -alpha remove "$svg" "$png" \
+            # Render at 150 dpi then resize to max 1200px wide so the files stay
+            # small enough to embed inline in the job summary (GitHub limit: 1 MB
+            # per summary file).
+            convert -density 150 -background white -alpha remove \
+              -resize '1200x>' "$svg" "$png" \
               && echo "Converted $svg → $png" \
               || echo "WARNING: failed to convert $svg"
+          done
+
+      # Write an HTML job summary so every PNG is visible inline on the Actions
+      # page — no zip download needed, works in Chrome on Android.
+      - name: Write inline image summary
+        run: |
+          echo "## Schematic screenshots" >> "$GITHUB_STEP_SUMMARY"
+          for png in $(ls screenshots/*.png | sort); do
+            name=$(basename "${png%.png}")
+            b64=$(base64 -w 0 "$png")
+            printf '\n### %s\n\n<img src="data:image/png;base64,%s" alt="%s" style="max-width:100%%;">\n' \
+              "$name" "$b64" "$name" >> "$GITHUB_STEP_SUMMARY"
+            echo "Added $name to summary ($(wc -c < "$png") bytes)"
           done
 
       - name: Upload schematic screenshots
