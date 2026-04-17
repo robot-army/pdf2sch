@@ -122,7 +122,7 @@ class PDF2SchPipeline:
             Component(
                 ref=s.ref,
                 value=s.value,
-                symbol=self._guess_symbol(s.value),
+                symbol=self._guess_symbol(s.ref, s.value),
                 footprint=s.footprint_hint or "Unknown",
             )
             for s in detection.symbols
@@ -147,7 +147,14 @@ class PDF2SchPipeline:
             review_net_indices=review_net_indices,
         )
 
-    def _guess_symbol(self, value: str) -> str:
+    def _guess_symbol(self, ref: str, value: str) -> str:
+        ref_upper = ref.upper()
+        if ref_upper.startswith("R"):
+            return "Device:R"
+        if ref_upper.startswith("C"):
+            return "Device:C"
+        if ref_upper.startswith("L"):
+            return "Device:L"
         upper = value.upper()
         for prefix, symbol in self.config.value_symbol_prefix_rules:
             if upper.startswith(prefix.upper()):

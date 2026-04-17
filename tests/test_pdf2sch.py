@@ -93,6 +93,19 @@ class TestPDF2SchPipeline(unittest.TestCase):
         self.assertEqual(reviewed.components[0].symbol, "Custom:ADI")
         self.assertEqual(reviewed.nets[0].name, "CHECK_SIG")
 
+    def test_reference_designator_improves_symbol_mapping(self):
+        pipeline = PDF2SchPipeline(
+            detector=lambda _: DetectionOutput(
+                symbols=[DetectedSymbol("L1", "10u")],
+                wires=[],
+                text_items=[],
+            )
+        )
+
+        model = pipeline.build_model(pipeline.detect("a.pdf"))
+
+        self.assertEqual(model.components[0].symbol, "Device:L")
+
 
 if __name__ == "__main__":
     unittest.main()
