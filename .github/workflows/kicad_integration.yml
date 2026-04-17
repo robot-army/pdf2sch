@@ -44,7 +44,7 @@ jobs:
           cache: "pip"
 
       - name: Install Python dependencies
-        run: pip install pymupdf
+        run: pip install -r requirements.txt
 
       - name: Generate stickhub schematic from PDF
         run: |
