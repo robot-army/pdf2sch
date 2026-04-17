@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 # Format constants
 # ---------------------------------------------------------------------------
 
-_FORMAT_VERSION = 20231120
+_FORMAT_VERSION = 20250114  # KiCad 9 native format
 _GENERATOR = "pdf2sch"
 _GENERATOR_VERSION = "0.1.0"
 
@@ -201,14 +201,16 @@ def render_kicad_schematic(
     overlay_pdf: str | None = None,
 ) -> str:
     """Return the .kicad_sch text for *model* without writing to disk."""
+    sheet_uuid = _uid()
     lines: list[str] = []
-    _header(lines, model.pages)
+    _header(lines, model.pages, sheet_uuid)
     _lib_symbols(lines, model)
-    _symbol_instances(lines, model)
+    _symbol_instances(lines, model, sheet_uuid)
     _net_labels(lines, model)
     if overlay_pdf is not None:
         _bitmap_overlay(lines, overlay_pdf)
     _sheet_instances(lines, model.pages)
+    lines.append("  (embedded_fonts no)")
     lines.append(")")
     return "\n".join(lines) + "\n"
 
@@ -226,12 +228,13 @@ def _mm(val: float) -> str:
     return f"{val:.4f}".rstrip("0").rstrip(".")
 
 
-def _header(lines: list[str], pages: int) -> None:
+def _header(lines: list[str], pages: int, sheet_uuid: str) -> None:
     lines += [
         "(kicad_sch",
         f"  (version {_FORMAT_VERSION})",
         f'  (generator "{_GENERATOR}")',
         f'  (generator_version "{_GENERATOR_VERSION}")',
+        f'  (uuid "{sheet_uuid}")',
         '  (paper "A4")',
     ]
 
@@ -257,7 +260,7 @@ def _grid_position(index: int) -> tuple[float, float]:
     return x, y
 
 
-def _symbol_instances(lines: list[str], model: "SchematicModel") -> None:
+def _symbol_instances(lines: list[str], model: "SchematicModel", sheet_uuid: str) -> None:
     for idx, comp in enumerate(model.components):
         x, y = _grid_position(idx)
         sym_uuid = _uid()
@@ -269,6 +272,7 @@ def _symbol_instances(lines: list[str], model: "SchematicModel") -> None:
             "    (exclude_from_sim no)",
             "    (in_bom yes)",
             "    (on_board yes)",
+            "    (dnp no)",
             f'    (uuid "{sym_uuid}")',
             f'    (property "Reference" "{comp.ref}"',
             f"      (at {_mm(x + 1.27)} {_mm(y - 1.27)} 0)",
@@ -287,7 +291,7 @@ def _symbol_instances(lines: list[str], model: "SchematicModel") -> None:
             "      (effects (font (size 1.27 1.27)) hide yes)",
             "    )",
             '    (instances (project ""',
-            f'      (path "/" (reference "{comp.ref}") (unit 1))',
+            f'      (path "/{sheet_uuid}" (reference "{comp.ref}") (unit 1))',
             "    ))",
             "  )",
         ]

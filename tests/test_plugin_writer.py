@@ -85,7 +85,7 @@ class TestWriterOutput(unittest.TestCase):
 
     def test_format_version_present(self):
         out = render_kicad_schematic(_simple_model())
-        self.assertIn("(version 20231120)", out)
+        self.assertIn("(version 20250114)", out)
 
     def test_generator_tag_present(self):
         out = render_kicad_schematic(_simple_model())
