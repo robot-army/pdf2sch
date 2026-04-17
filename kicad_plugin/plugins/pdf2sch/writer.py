@@ -44,30 +44,33 @@ _LABEL_OFFSET_MM = 5.08
 
 _LIB_R = """\
     (symbol "Device:R"
+      (pin_numbers (hide yes))
       (pin_names (offset 0))
       (exclude_from_sim no)
       (in_bom yes)
       (on_board yes)
-      (property "Reference" "R" (at 1.016 0 90) (effects (font (size 1.27 1.27))))
-      (property "Value" "R" (at -1.016 0 90) (effects (font (size 1.27 1.27))))
-      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Reference" "R" (at 2.032 0 90) (effects (font (size 1.27 1.27))))
+      (property "Value" "R" (at 0 0 90) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at -1.778 0 90) (effects (font (size 1.27 1.27)) (hide yes)))
       (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "Resistor" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
       (symbol "R_0_1"
-        (rectangle (start -1.016 -2.032) (end 1.016 2.032)
-          (stroke (width 0.2032) (type default))
+        (rectangle (start -1.016 -2.54) (end 1.016 2.54)
+          (stroke (width 0.254) (type default))
           (fill (type none))
         )
       )
       (symbol "R_1_1"
-        (pin passive line (at 0 3.81 270) (length 1.778)
+        (pin passive line (at 0 3.81 270) (length 1.27)
           (name "~" (effects (font (size 1.27 1.27))))
           (number "1" (effects (font (size 1.27 1.27))))
         )
-        (pin passive line (at 0 -3.81 90) (length 1.778)
+        (pin passive line (at 0 -3.81 90) (length 1.27)
           (name "~" (effects (font (size 1.27 1.27))))
           (number "2" (effects (font (size 1.27 1.27))))
         )
       )
+      (embedded_fonts no)
     )"""
 
 _LIB_C = """\
@@ -102,6 +105,7 @@ _LIB_C = """\
           (number "2" (effects (font (size 1.27 1.27))))
         )
       )
+      (embedded_fonts no)
     )"""
 
 _LIB_L = """\
@@ -142,6 +146,7 @@ _LIB_L = """\
           (number "2" (effects (font (size 1.27 1.27))))
         )
       )
+      (embedded_fonts no)
     )"""
 
 _LIB_U = """\
@@ -159,6 +164,170 @@ _LIB_U = """\
           (fill (type background))
         )
       )
+      (embedded_fonts no)
+    )"""
+
+# LED diode – full Device:LED definition from KiCad 9 standard library.
+_LIB_LED = """\
+    (symbol "Device:LED"
+      (pin_numbers (hide yes))
+      (pin_names (offset 1.016) (hide yes))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "D" (at 0 2.54 0) (effects (font (size 1.27 1.27))))
+      (property "Value" "LED" (at 0 -2.54 0) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "Light emitting diode" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol "LED_0_1"
+        (polyline
+          (pts (xy -3.048 -0.762) (xy -4.572 -2.286) (xy -3.81 -2.286) (xy -4.572 -2.286) (xy -4.572 -1.524))
+          (stroke (width 0) (type default))
+          (fill (type none))
+        )
+        (polyline
+          (pts (xy -1.778 -0.762) (xy -3.302 -2.286) (xy -2.54 -2.286) (xy -3.302 -2.286) (xy -3.302 -1.524))
+          (stroke (width 0) (type default))
+          (fill (type none))
+        )
+        (polyline
+          (pts (xy -1.27 0) (xy 1.27 0))
+          (stroke (width 0) (type default))
+          (fill (type none))
+        )
+        (polyline
+          (pts (xy -1.27 -1.27) (xy -1.27 1.27))
+          (stroke (width 0.254) (type default))
+          (fill (type none))
+        )
+        (polyline
+          (pts (xy 1.27 -1.27) (xy 1.27 1.27) (xy -1.27 0) (xy 1.27 -1.27))
+          (stroke (width 0.254) (type default))
+          (fill (type none))
+        )
+      )
+      (symbol "LED_1_1"
+        (pin passive line (at -3.81 0 0) (length 2.54)
+          (name "K" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 3.81 0 180) (length 2.54)
+          (name "A" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))
+        )
+      )
+      (embedded_fonts no)
+    )"""
+
+# Generic diode (no light rays) – Device:D.
+_LIB_D = """\
+    (symbol "Device:D"
+      (pin_numbers (hide yes))
+      (pin_names (offset 1.016) (hide yes))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "D" (at 0 2.54 0) (effects (font (size 1.27 1.27))))
+      (property "Value" "D" (at 0 -2.54 0) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "~" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "Diode" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol "D_0_1"
+        (polyline
+          (pts (xy -1.27 0) (xy 1.27 0))
+          (stroke (width 0) (type default))
+          (fill (type none))
+        )
+        (polyline
+          (pts (xy -1.27 -1.27) (xy -1.27 1.27))
+          (stroke (width 0.254) (type default))
+          (fill (type none))
+        )
+        (polyline
+          (pts (xy 1.27 -1.27) (xy 1.27 1.27) (xy -1.27 0) (xy 1.27 -1.27))
+          (stroke (width 0.254) (type default))
+          (fill (type none))
+        )
+      )
+      (symbol "D_1_1"
+        (pin passive line (at -3.81 0 0) (length 2.54)
+          (name "K" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
+        )
+        (pin passive line (at 3.81 0 180) (length 2.54)
+          (name "A" (effects (font (size 1.27 1.27))))
+          (number "2" (effects (font (size 1.27 1.27))))
+        )
+      )
+      (embedded_fonts no)
+    )"""
+
+# Power symbols – GND and +5V (embedded so kicad-cli needs no external library).
+_LIB_GND = """\
+    (symbol "power:GND"
+      (power)
+      (pin_names (offset 0))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "#PWR" (at 0 -6.35 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Value" "GND" (at 0 -3.81 0) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "Power symbol creates a global label with name \\"GND\\" , ground" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol "GND_0_1"
+        (polyline
+          (pts (xy 0 0) (xy 0 -1.27) (xy 1.27 -1.27) (xy 0 -2.54) (xy -1.27 -1.27) (xy 0 -1.27))
+          (stroke (width 0) (type default))
+          (fill (type none))
+        )
+      )
+      (symbol "GND_1_1"
+        (pin power_in line (at 0 0 270) (length 0) (hide yes)
+          (name "GND" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
+        )
+      )
+      (embedded_fonts no)
+    )"""
+
+_LIB_PWR_5V = """\
+    (symbol "power:+5V"
+      (power)
+      (pin_names (offset 0))
+      (exclude_from_sim no)
+      (in_bom yes)
+      (on_board yes)
+      (property "Reference" "#PWR" (at 0 -3.81 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Value" "+5V" (at 0 3.556 0) (effects (font (size 1.27 1.27))))
+      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "Power symbol creates a global label with name \\"+5V\\"" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (symbol "+5V_0_1"
+        (polyline
+          (pts (xy -0.762 1.27) (xy 0 2.54))
+          (stroke (width 0) (type default))
+          (fill (type none))
+        )
+        (polyline
+          (pts (xy 0 2.54) (xy 0.762 1.27))
+          (stroke (width 0) (type default))
+          (fill (type none))
+        )
+        (polyline
+          (pts (xy 0 0) (xy 0 2.54))
+          (stroke (width 0) (type default))
+          (fill (type none))
+        )
+      )
+      (symbol "+5V_1_1"
+        (pin power_in line (at 0 0 90) (length 0) (hide yes)
+          (name "+5V" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))
+        )
+      )
+      (embedded_fonts no)
     )"""
 
 # Map lib_id → embedded definition.
@@ -170,12 +339,25 @@ _LIB_DEFS: dict[str, str] = {
     "Device:R": _LIB_R,
     "Device:C": _LIB_C,
     "Device:L": _LIB_L,
+    "Device:LED": _LIB_LED,
+    "Device:D": _LIB_D,
     "Device:U": _LIB_U,
+    "power:GND": _LIB_GND,
+    "power:+5V": _LIB_PWR_5V,
 }
 
 # ---------------------------------------------------------------------------
 # TODOs
 # ---------------------------------------------------------------------------
+#
+# TODO: Symbol library lookup
+#   Instead of embedding a small static set of lib definitions, query KiCad's
+#   installed standard library (kicad-symbols, typically at
+#   /usr/share/kicad/symbols/*.kicad_sym) when available, then fall back to
+#   community libraries, then to AI-assisted generation.  The dialog should let
+#   the user confirm or override the chosen symbol before the schematic is
+#   written.  Pin counts, pin names, and graphical shape will then always be
+#   authoritative rather than approximated.
 #
 # TODO: Plugin dialog screenshots in CI
 #   End-to-end testing of the KiCad plugin UI (the wx dialog, file picker,
@@ -192,10 +374,6 @@ _LIB_DEFS: dict[str, str] = {
 #   upstream a small addition to KiCad's scripting bridge – or maintain a
 #   local patch – so that plugin authors can write proper integration tests
 #   without resorting to fragile GUI automation.
-
-# Map lib_id → list of pin numbers for standard two-pin passives (used when
-# building net-label placement; for generic ICs we parse from node references).
-_TWO_PIN_LIBS = {"Device:R", "Device:C", "Device:L"}
 
 
 # ---------------------------------------------------------------------------
@@ -227,8 +405,8 @@ def render_kicad_schematic(
     sheet_uuid = _uid()
     lines: list[str] = []
     _header(lines, model.pages, sheet_uuid)
-    _lib_symbols(lines, model)
-    _symbol_instances(lines, model, sheet_uuid)
+    lib_defs = _lib_symbols(lines, model)
+    _symbol_instances(lines, model, sheet_uuid, lib_defs)
     _net_labels(lines, model)
     if overlay_pdf is not None:
         _bitmap_overlay(lines, overlay_pdf)
@@ -251,6 +429,32 @@ def _mm(val: float) -> str:
     return f"{val:.4f}".rstrip("0").rstrip(".")
 
 
+def _extract_pin_numbers(lib_def: str) -> list[str]:
+    """Return the ordered list of pin numbers declared in a lib symbol string.
+
+    Scans for ``(number "N" ...)`` tokens that appear inside a ``(pin ...)``
+    block.  This is intentionally simple: it does not parse a full S-expression
+    tree, it just looks for the pattern that KiCad always emits.  The result is
+    used to populate per-instance ``(pin "N" (uuid "..."))`` entries which
+    KiCad 9 requires for connectivity.
+
+    Because pin numbers are extracted from the *same* definition string that
+    gets embedded in the schematic file, the count is always consistent with
+    the actual symbol regardless of how many pins it has.
+    """
+    import re
+    # Find every (number "...") that is a child of a (pin ...) clause.
+    # KiCad always writes: (pin TYPE STYLE (at ...) ... (number "N" ...) ...)
+    # so we search for (number "<digits_or_text>" within a context that
+    # starts with "(pin ".
+    seen: dict[str, int] = {}   # preserve order, deduplicate
+    for m in re.finditer(r'\(number\s+"([^"]+)"', lib_def):
+        n = m.group(1)
+        if n not in seen:
+            seen[n] = len(seen)
+    return list(seen)
+
+
 def _header(lines: list[str], pages: int, sheet_uuid: str) -> None:
     lines += [
         "(kicad_sch",
@@ -262,16 +466,32 @@ def _header(lines: list[str], pages: int, sheet_uuid: str) -> None:
     ]
 
 
-def _lib_symbols(lines: list[str], model: "SchematicModel") -> None:
+def _lib_symbols(lines: list[str], model: "SchematicModel") -> dict[str, str]:
+    """Emit the (lib_symbols ...) block and return a mapping lib_id → definition string.
+
+    The returned map is used by _symbol_instances so it can call
+    _extract_pin_numbers() on the actual definition rather than a separate
+    hardcoded pin-count table.
+    """
     lines.append("  (lib_symbols")
-    seen: set[str] = set()
+    seen: dict[str, str] = {}
     for comp in model.components:
         lib_id = comp.symbol
         if lib_id in seen:
             continue
-        seen.add(lib_id)
         if lib_id in _LIB_DEFS:
             defn = _LIB_DEFS[lib_id]
+        elif lib_id.startswith("power:"):
+            # Generic power symbol: derive from the +5V template.
+            pwr_name = lib_id[len("power:"):]
+            safe = pwr_name.replace("+", "").replace("-", "").replace(".", "_")
+            defn = (
+                _LIB_PWR_5V
+                .replace('"power:+5V"', f'"{lib_id}"')
+                .replace('"+5V"', f'"{pwr_name}"')
+                .replace('"+5V_0_1"', f'"{safe}_0_1"')
+                .replace('"+5V_1_1"', f'"{safe}_1_1"')
+            )
         else:
             # Build a generic box using _LIB_U as a template.  We must update
             # both the outer symbol name AND the inner sub-symbol names, because
@@ -283,8 +503,10 @@ def _lib_symbols(lines: list[str], model: "SchematicModel") -> None:
                 .replace('"Device:U"', f'"{lib_id}"')
                 .replace('"U_0_1"', f'"{base_name}_0_1"')
             )
+        seen[lib_id] = defn
         lines.append(defn)
     lines.append("  )")
+    return seen
 
 
 def _grid_position(index: int) -> tuple[float, float]:
@@ -295,7 +517,12 @@ def _grid_position(index: int) -> tuple[float, float]:
     return x, y
 
 
-def _symbol_instances(lines: list[str], model: "SchematicModel", sheet_uuid: str) -> None:
+def _symbol_instances(
+    lines: list[str],
+    model: "SchematicModel",
+    sheet_uuid: str,
+    lib_defs: dict[str, str],
+) -> None:
     for idx, comp in enumerate(model.components):
         x, y = _grid_position(idx)
         sym_uuid = _uid()
@@ -308,6 +535,7 @@ def _symbol_instances(lines: list[str], model: "SchematicModel", sheet_uuid: str
             "    (in_bom yes)",
             "    (on_board yes)",
             "    (dnp no)",
+            "    (fields_autoplaced yes)",
             f'    (uuid "{sym_uuid}")',
             f'    (property "Reference" "{comp.ref}"',
             f"      (at {_mm(x + 1.27)} {_mm(y - 1.27)} 0)",
@@ -325,9 +553,38 @@ def _symbol_instances(lines: list[str], model: "SchematicModel", sheet_uuid: str
             f"      (at {_mm(x)} {_mm(y)} 0)",
             "      (effects (font (size 1.27 1.27)) (hide yes))",
             "    )",
-            '    (instances (project ""',
-            f'      (path "/{sheet_uuid}" (reference "{comp.ref}") (unit 1))',
-            "    ))",
+            '    (property "Description" ""',
+            f"      (at {_mm(x)} {_mm(y)} 0)",
+            "      (effects (font (size 1.27 1.27)) (hide yes))",
+            "    )",
+        ]
+        # KiCad 9 requires a (pin "N" (uuid "...")) entry for every pin in the
+        # symbol so it can build the connectivity model.  Extract pin numbers
+        # from the *actual* lib definition we embedded – this stays correct
+        # regardless of how many pins the symbol has.
+        lib_def_text = lib_defs.get(comp.symbol, "")
+        pin_numbers = _extract_pin_numbers(lib_def_text)
+        if not pin_numbers:
+            # Fallback: collect any pin numbers referenced in nets.
+            pin_set: set[str] = set()
+            for net in model.nets:
+                for node in net.nodes:
+                    if "." in node:
+                        ref, pin = node.rsplit(".", 1)
+                        if ref == comp.ref:
+                            pin_set.add(pin)
+            pin_numbers = sorted(pin_set)
+        for pnum in pin_numbers:
+            lines.append(f'    (pin "{pnum}" (uuid "{_uid()}"))')
+        lines += [
+            "    (instances",
+            '      (project ""',
+            f'        (path "/{sheet_uuid}"',
+            f'          (reference "{comp.ref}")',
+            "          (unit 1)",
+            "        )",
+            "      )",
+            "    )",
             "  )",
         ]
 

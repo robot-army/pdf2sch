@@ -147,6 +147,11 @@ class PDF2SchPipeline:
             return "Device:C"
         if ref_upper.startswith("L"):
             return "Device:L"
+        if ref_upper.startswith("D"):
+            # LED if value says so, otherwise generic diode
+            if value.upper() == "LED":
+                return "Device:LED"
+            return "Device:D"
         if ref_upper.startswith("U"):
             return "Device:U"
         upper = value.upper()

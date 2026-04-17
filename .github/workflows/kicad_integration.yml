@@ -46,28 +46,50 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
+      # ── realsmall (minimal: 1 LED, 1 R, power, GND) ─────────────────────
+      - name: Generate realsmall schematic from PDF
+        run: |
+          python scripts/generate_sample_sch.py \
+            test-data/realsmall-pdf2sch/realsmall/realsmall.pdf \
+            /tmp/realsmall.kicad_sch
+
+      - name: Verify realsmall schematic was created
+        run: |
+          test -f /tmp/realsmall.kicad_sch
+          echo "--- first 30 lines ---"
+          head -30 /tmp/realsmall.kicad_sch
+
+      - name: Export realsmall to SVG (kicad-cli)
+        run: |
+          mkdir -p screenshots
+          kicad-cli sch export svg \
+            --output screenshots/ \
+            /tmp/realsmall.kicad_sch
+          echo "--- generated files ---"
+          ls -lh screenshots/
+
+      # ── stickhub (larger real-world schematic) ───────────────────────────
       - name: Generate stickhub schematic from PDF
         run: |
           python scripts/generate_sample_sch.py \
             test-data/stickhub-pdf2sch/stickhub-pdf2sch.pdf \
             /tmp/stickhub.kicad_sch
 
-      - name: Verify schematic file was created
+      - name: Verify stickhub schematic was created
         run: |
           test -f /tmp/stickhub.kicad_sch
           echo "--- first 30 lines ---"
           head -30 /tmp/stickhub.kicad_sch
 
-      - name: Export schematic to SVG (kicad-cli)
+      - name: Export stickhub to SVG (kicad-cli)
         run: |
-          mkdir -p screenshots
           kicad-cli sch export svg \
             --output screenshots/ \
             /tmp/stickhub.kicad_sch
           echo "--- generated files ---"
           ls -lh screenshots/
 
-      - name: Convert SVG to PNG for preview (ImageMagick)
+      - name: Convert SVGs to PNG for preview (ImageMagick)
         run: |
           sudo apt-get install -y --no-install-recommends imagemagick
           for svg in screenshots/*.svg; do
@@ -87,9 +109,11 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Upload generated schematic
+      - name: Upload generated schematics
         uses: actions/upload-artifact@v4
         with:
-          name: stickhub-schematic
-          path: /tmp/stickhub.kicad_sch
+          name: generated-schematics
+          path: |
+            /tmp/realsmall.kicad_sch
+            /tmp/stickhub.kicad_sch
           retention-days: 90
