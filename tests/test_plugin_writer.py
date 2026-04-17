@@ -421,3 +421,40 @@ class TestWriterOutput(unittest.TestCase):
         self.assertIn("(title_block", out)
         self.assertIn('(title "My Design")', out)
         self.assertIn('(company "ACME")', out)
+
+    # ------------------------------------------------------------------
+    # kicad_pro companion file
+    # ------------------------------------------------------------------
+
+    def test_write_kicad_schematic_creates_kicad_pro(self):
+        """write_kicad_schematic must create a .kicad_pro alongside the .kicad_sch."""
+        import json, os, tempfile
+        model = SchematicModel(
+            components=[Component("R1", "10k", "Device:R", "")],
+            nets=[],
+            pages=1,
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sch_path = os.path.join(tmpdir, "test.kicad_sch")
+            pro_path = os.path.join(tmpdir, "test.kicad_pro")
+            write_kicad_schematic(model, sch_path)
+            self.assertTrue(os.path.isfile(pro_path), ".kicad_pro was not created")
+            with open(pro_path) as fh:
+                pro = json.load(fh)
+            self.assertEqual(pro["meta"]["version"], 3)
+            self.assertEqual(pro["meta"]["filename"], "test.kicad_pro")
+            sheets = pro["sheets"]
+            self.assertEqual(len(sheets), 1)
+            self.assertEqual(sheets[0][1], "Root")
+            # The sheet UUID in .kicad_pro must match the (uuid ...) in .kicad_sch.
+            sheet_uuid = sheets[0][0]
+            with open(sch_path) as fh:
+                sch_text = fh.read()
+            self.assertIn(f'(uuid "{sheet_uuid}")', sch_text)
+
+    def test_render_kicad_schematic_accepts_sheet_uuid(self):
+        """render_kicad_schematic must use the supplied sheet_uuid."""
+        model = SchematicModel(components=[], nets=[], pages=1)
+        fixed_uuid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        out = render_kicad_schematic(model, sheet_uuid=fixed_uuid)
+        self.assertIn(f'(uuid "{fixed_uuid}")', out)

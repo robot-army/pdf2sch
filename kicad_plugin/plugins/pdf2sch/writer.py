@@ -607,6 +607,12 @@ def write_kicad_schematic(
 ) -> None:
     """Write *model* to a KiCad 9 .kicad_sch file at *output_path*.
 
+    Also writes a companion ``.kicad_pro`` project file in the same directory
+    (with the same base name) so that ``kicad-cli sch export svg`` can open the
+    schematic without a "Failed to load schematic" error.  Without the project
+    file KiCad's headless loader returns exit code 3 regardless of whether the
+    schematic is otherwise valid.
+
     If *overlay_pdf* is given the overlay module is called to rasterise and
     embed the first page as a background bitmap (requires pypdfium2).
 
@@ -616,11 +622,23 @@ def write_kicad_schematic(
     that symbols defined there are embedded verbatim rather than approximated
     by the built-in stubs.
     """
+    # Generate the sheet UUID here so it can be shared between the schematic
+    # and the project file (which must reference the same root sheet UUID).
+    sheet_uuid = _uid()
     content = render_kicad_schematic(
-        model, overlay_pdf=overlay_pdf, sym_lib_paths=sym_lib_paths
+        model,
+        overlay_pdf=overlay_pdf,
+        sym_lib_paths=sym_lib_paths,
+        sheet_uuid=sheet_uuid,
     )
     with open(output_path, "w", encoding="utf-8") as fh:
         fh.write(content)
+
+    # Write the companion .kicad_pro file.
+    base = os.path.splitext(output_path)[0]
+    pro_path = base + ".kicad_pro"
+    project_name = os.path.basename(pro_path)
+    _write_project_file(pro_path, project_name, sheet_uuid)
 
 
 def render_kicad_schematic(
@@ -628,11 +646,18 @@ def render_kicad_schematic(
     *,
     overlay_pdf: str | None = None,
     sym_lib_paths: list[str] | None = None,
+    sheet_uuid: str | None = None,
 ) -> str:
-    """Return the .kicad_sch text for *model* without writing to disk."""
+    """Return the .kicad_sch text for *model* without writing to disk.
+
+    *sheet_uuid* may be supplied by the caller (e.g. ``write_kicad_schematic``
+    shares the UUID with the companion ``.kicad_pro``).  If omitted a fresh
+    UUID is generated automatically.
+    """
     n_components = len(model.components)
     paper, n_cols = _paper_and_cols(n_components)
-    sheet_uuid = _uid()
+    if sheet_uuid is None:
+        sheet_uuid = _uid()
     lines: list[str] = []
     _header(lines, model, sheet_uuid, paper)
     # Build the effective search path: caller-supplied dirs first, then defaults.
@@ -646,6 +671,37 @@ def render_kicad_schematic(
     lines.append("  (embedded_fonts no)")
     lines.append(")")
     return "\n".join(lines) + "\n"
+
+
+def _write_project_file(path: str, project_name: str, sheet_uuid: str) -> None:
+    """Write a minimal ``.kicad_pro`` project file.
+
+    ``kicad-cli sch export svg`` opens a schematic through KiCad's project
+    loader, which expects a matching ``.kicad_pro`` file in the same directory
+    (same base name, ``.kicad_pro`` extension).  Without it the loader returns
+    "Failed to load schematic" / exit code 3 even for a syntactically valid
+    ``.kicad_sch`` file.
+
+    The ``sheets`` array must list the root sheet UUID so that KiCad can bind
+    the sheet hierarchy.  We pass the same UUID that was written into the
+    ``(uuid ...)`` token of the companion ``.kicad_sch``.
+    """
+    import json
+    content = {
+        "meta": {
+            "filename": project_name,
+            "version": 3,
+        },
+        "schematic": {
+            "meta": {"version": 1},
+        },
+        "sheets": [
+            [sheet_uuid, "Root"],
+        ],
+    }
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(content, fh, indent=2)
+        fh.write("\n")
 
 
 # ---------------------------------------------------------------------------

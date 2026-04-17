@@ -59,8 +59,24 @@ jobs:
       - name: Verify realsmall schematic was created
         run: |
           test -f /tmp/realsmall.kicad_sch
-          echo "--- first 30 lines ---"
+          test -f /tmp/realsmall.kicad_pro
+          echo "--- .kicad_pro ---"
+          cat /tmp/realsmall.kicad_pro
+          echo "--- first 30 lines of .kicad_sch ---"
           head -30 /tmp/realsmall.kicad_sch
+
+      # Sanity-check: verify kicad-cli can load the GROUND-TRUTH realsmall
+      # schematic (which ships with its own .kicad_pro) before we test our
+      # generated one.  If this fails the issue is with kicad-cli itself, not
+      # our format.
+      - name: Verify ground-truth realsmall loads in kicad-cli
+        run: |
+          mkdir -p screenshots
+          kicad-cli sch export svg \
+            --output screenshots/ \
+            test-data/realsmall-pdf2sch/realsmall/realsmall.kicad_sch
+          echo "--- ground-truth SVG generated ---"
+          ls -lh screenshots/
 
       - name: Export realsmall to SVG (kicad-cli)
         run: |
