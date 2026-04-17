@@ -161,14 +161,37 @@ _LIB_U = """\
       )
     )"""
 
-# Map lib_id → embedded definition
+# Map lib_id → embedded definition.
+# NOTE: "Device:Unknown" is intentionally *not* listed here so that the
+# fallback in _lib_symbols() replaces the symbol name correctly.  Listing it
+# here would insert _LIB_U verbatim (name = "Device:U"), creating a mismatch
+# with the (lib_id "Device:Unknown") in every symbol instance.
 _LIB_DEFS: dict[str, str] = {
     "Device:R": _LIB_R,
     "Device:C": _LIB_C,
     "Device:L": _LIB_L,
     "Device:U": _LIB_U,
-    "Device:Unknown": _LIB_U,
 }
+
+# ---------------------------------------------------------------------------
+# TODOs
+# ---------------------------------------------------------------------------
+#
+# TODO: Plugin dialog screenshots in CI
+#   End-to-end testing of the KiCad plugin UI (the wx dialog, file picker,
+#   confidence slider, etc.) is currently not covered by CI.  A future task
+#   should set up a headless X server (Xvfb) on the CI runner, launch KiCad
+#   with the plugin pre-installed, drive it via xdotool or a KiCad scripting
+#   hook, and capture screenshots as build artefacts so regressions in the
+#   user-facing flow are caught automatically.
+#
+# TODO: Extend KiCad's schematic plugin scripting API
+#   The eeschema Python API exposed to plugins is currently too thin to drive
+#   the full plugin flow programmatically (e.g. triggering Run(), reading the
+#   resulting schematic, asserting on its content).  A future task should
+#   upstream a small addition to KiCad's scripting bridge – or maintain a
+#   local patch – so that plugin authors can write proper integration tests
+#   without resorting to fragile GUI automation.
 
 # Map lib_id → list of pin numbers for standard two-pin passives (used when
 # building net-label placement; for generic ICs we parse from node references).

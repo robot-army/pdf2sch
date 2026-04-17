@@ -16,6 +16,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Cache the downloaded KiCad .deb files so that subsequent runs skip the
+      # ~500 MB PPA download.  The key includes the workflow file hash so the
+      # cache is invalidated if the install steps change.
+      - name: Cache KiCad apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: kicad9-apt-${{ runner.os }}-${{ hashFiles('.github/workflows/kicad_integration.yml') }}
+          restore-keys: |
+            kicad9-apt-${{ runner.os }}-
+
       - name: Install KiCad 9
         run: |
           sudo add-apt-repository --yes ppa:kicad/kicad-9.0-releases
@@ -30,6 +41,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
 
       - name: Install Python dependencies
         run: pip install pymupdf
