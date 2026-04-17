@@ -21,6 +21,9 @@ class PipelineConfig:
     )
     value_symbol_prefix_rules: tuple[tuple[str, str], ...] = (
         ("AD", "Amplifier_Operational:ADI_Generic"),
+        ("LM", "Device:U"),
+        ("TL", "Device:U"),
+        ("AT", "Device:U"),
     )
 
 
@@ -155,6 +158,8 @@ class PDF2SchPipeline:
             return "Device:C"
         if ref_upper.startswith("L"):
             return "Device:L"
+        if ref_upper.startswith("U"):
+            return "Device:U"
         upper = value.upper()
         for prefix, symbol in self.config.value_symbol_prefix_rules:
             if upper.startswith(prefix.upper()):
@@ -173,7 +178,7 @@ class PDF2SchPipeline:
         # Netlist accuracy is prioritized: uncertain nets require explicit confirmation.
         for question, net_idx in zip(model.review_questions, model.review_net_indices):
             answer = input_fn(question + " ").strip().lower()
-            if answer in {"n", "no"} and net_idx < len(model.nets):
+            if answer in {"n", "no"}:
                 model.nets[net_idx].name = f"{self.config.review_required_prefix}{model.nets[net_idx].name}"
         return model
 

@@ -106,6 +106,19 @@ class TestPDF2SchPipeline(unittest.TestCase):
 
         self.assertEqual(model.components[0].symbol, "Device:L")
 
+    def test_missing_footprint_hint_falls_back_to_unknown(self):
+        pipeline = PDF2SchPipeline(
+            detector=lambda _: DetectionOutput(
+                symbols=[DetectedSymbol("R1", "10k")],
+                wires=[],
+                text_items=[],
+            )
+        )
+
+        model = pipeline.build_model(pipeline.detect("a.pdf"))
+
+        self.assertEqual(model.components[0].footprint, "Unknown")
+
 
 if __name__ == "__main__":
     unittest.main()
