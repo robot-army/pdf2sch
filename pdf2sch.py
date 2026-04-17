@@ -4,14 +4,24 @@ from dataclasses import dataclass, field
 from typing import Callable, Iterable
 
 
-BORDER_TEXT_MARKERS = (
-    "sheet",
-    "rev",
-    "title",
-    "page",
-    "size",
-    "drawn by",
-)
+@dataclass
+class PipelineConfig:
+    border_text_markers: tuple[str, ...] = (
+        "sheet",
+        "rev",
+        "title",
+        "page",
+        "size",
+        "drawn by",
+    )
+    low_confidence_threshold: float = 0.8
+    review_required_prefix: str = "REVIEW_REQUIRED_"
+    review_question_template: str = (
+        "Net '{net_name}' has low confidence ({confidence:.2f}). Keep detected nodes {nodes}? (y/n)"
+    )
+    value_symbol_prefix_rules: tuple[tuple[str, str], ...] = (
+        ("AD", "Amplifier_Operational:ADI_Generic"),
+    )
 
 
 @dataclass
@@ -66,8 +76,10 @@ class PDF2SchPipeline:
     def __init__(
         self,
         detector: Callable[[str], DetectionOutput] | None = None,
+        config: PipelineConfig | None = None,
     ) -> None:
         self.detector = detector or self._default_detector
+        self.config = config or PipelineConfig()
 
     def _default_detector(self, pdf_source: str) -> DetectionOutput:
         # Placeholder for CV + OCR + ML detection implementation.
@@ -99,7 +111,7 @@ class PDF2SchPipeline:
         filtered: list[str] = []
         for item in text_items:
             lowered = item.strip().lower()
-            if any(marker in lowered for marker in BORDER_TEXT_MARKERS):
+            if any(marker in lowered for marker in self.config.border_text_markers):
                 continue
             filtered.append(item)
         return filtered
@@ -116,9 +128,11 @@ class PDF2SchPipeline:
         ]
         nets = [Net(name=w.net_name, nodes=w.nodes[:]) for w in detection.wires]
         review_questions = [
-            f"Net '{w.net_name}' has low confidence ({w.confidence:.2f}). Keep detected nodes {w.nodes}? (y/n)"
+            self.config.review_question_template.format(
+                net_name=w.net_name, confidence=w.confidence, nodes=w.nodes
+            )
             for w in detection.wires
-            if w.confidence < 0.8
+            if w.confidence < self.config.low_confidence_threshold
         ]
         return SchematicModel(
             components=components,
@@ -130,12 +144,13 @@ class PDF2SchPipeline:
 
     def _guess_symbol(self, value: str) -> str:
         upper = value.upper()
+        for prefix, symbol in self.config.value_symbol_prefix_rules:
+            if upper.startswith(prefix.upper()):
+                return symbol
         if upper.endswith("K") or upper.endswith("M"):
             return "Device:R"
         if upper.endswith("N") or upper.endswith("U"):
             return "Device:C"
-        if upper.startswith("AD"):
-            return "Amplifier_Operational:ADI_Generic"
         return "Device:Unknown"
 
     def review_model(
@@ -147,7 +162,7 @@ class PDF2SchPipeline:
         for idx, question in enumerate(model.review_questions):
             answer = input_fn(question + " ").strip().lower()
             if answer in {"n", "no"} and idx < len(model.nets):
-                model.nets[idx].name = f"REVIEW_REQUIRED_{model.nets[idx].name}"
+                model.nets[idx].name = f"{self.config.review_required_prefix}{model.nets[idx].name}"
         return model
 
     def generate_kicad_schematic(self, model: SchematicModel) -> str:

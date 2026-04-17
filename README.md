@@ -13,6 +13,7 @@ This repository now includes a minimal executable pipeline in `/home/runner/work
 - Prioritizes netlist correctness by asking review questions for low-confidence nets
 - Generates KiCad schematic text output
 - Preserves multi-page and hierarchical-sheet metadata in the generated schematic
+- Uses a `PipelineConfig` object (uconfig-style declarative configuration) so detection/review/mapping rules can be tuned without changing core pipeline flow
 
 ## Run
 
@@ -27,5 +28,5 @@ Enter a PDF path or URL when prompted (for example the CN0359 PDF URL from the i
 
 ```bash
 cd /home/runner/work/pdf2sch/pdf2sch
-python -m unittest discover -v
+python -m unittest discover -s tests -v
 ```

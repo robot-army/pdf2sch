@@ -1,6 +1,12 @@
 import unittest
 
-from pdf2sch import DetectionOutput, DetectedSymbol, DetectedWire, PDF2SchPipeline
+from pdf2sch import (
+    DetectionOutput,
+    DetectedSymbol,
+    DetectedWire,
+    PDF2SchPipeline,
+    PipelineConfig,
+)
 
 
 class TestPDF2SchPipeline(unittest.TestCase):
@@ -48,6 +54,26 @@ class TestPDF2SchPipeline(unittest.TestCase):
         self.assertIn("(sheet (name \"Power\"))", output)
         self.assertIn("(ref U1)", output)
         self.assertIn("(net (name \"VDD\")", output)
+
+    def test_uconfig_style_overrides_are_applied(self):
+        pipeline = PDF2SchPipeline(
+            detector=lambda _: DetectionOutput(
+                symbols=[DetectedSymbol("X1", "AD8606")],
+                wires=[DetectedWire("SIG", ["X1.1"], confidence=0.6)],
+                text_items=[],
+            ),
+            config=PipelineConfig(
+                low_confidence_threshold=0.9,
+                review_required_prefix="CHECK_",
+                value_symbol_prefix_rules=(("AD", "Custom:ADI"),),
+            ),
+        )
+
+        model = pipeline.build_model(pipeline.detect("a.pdf"))
+        reviewed = pipeline.review_model(model, input_fn=lambda _: "n")
+
+        self.assertEqual(reviewed.components[0].symbol, "Custom:ADI")
+        self.assertEqual(reviewed.nets[0].name, "CHECK_SIG")
 
 
 if __name__ == "__main__":
