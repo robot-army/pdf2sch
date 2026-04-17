@@ -52,10 +52,15 @@ _WIRE_WIDTH_MAX = 0.55
 # Endpoint snap grid for union-find (PDF points)
 _SNAP_PT = 1.0
 
-# Greedy value-assignment search radius (PDF points, ≈ 14 mm at A3)
+# Minimum segment length to participate in the union-find topology.
+# Short segments (symbol-body stubs, pin decorations) are kept for component
+# proximity but excluded from connectivity clustering to prevent symbol bodies
+# from bridging separate nets.
+_UF_MIN_SEG_LEN_PT = 9.0
 
-# Radius to match a net label to a wire endpoint
-_MAX_LABEL_DIST_PT = 15.0
+# Radius to match a net label to a wire endpoint.  Raised to 20 so power
+# symbol text (rendered below the symbol body) can still be matched.
+_MAX_LABEL_DIST_PT = 20.0
 
 # Radius to match a component ref to a wire endpoint
 _MAX_COMP_DIST_PT = 28.0
@@ -132,7 +137,9 @@ def detect(pdf_path: str) -> DetectionOutput:
         all_components.extend(comps)
         all_net_label_positions.extend(net_labels)
 
-        for seg in _extract_wire_segs(page, pw, ph):
+        raw_segs = _extract_wire_segs(page, pw, ph)
+        filtered = _filter_segs_by_anchors(raw_segs, comps, net_labels)
+        for seg in filtered:
             all_wire_segs.append((seg, page_idx))
 
     symbols = [DetectedSymbol(ref=c.ref, value=c.value) for c in all_components]
@@ -377,6 +384,58 @@ def _extract_wire_segs(page, pw: float, ph: float) -> list[_WireSeg]:
     return segs
 
 
+def _filter_segs_by_anchors(
+    segs: list[_WireSeg],
+    comps: list[_Component],
+    net_labels: list[tuple[str, float, float]],
+    max_dist: float = 40.0,
+) -> list[_WireSeg]:
+    """Keep only segments reachable (via shared endpoints) from any segment
+    whose endpoint lies within *max_dist* PDF-points of a component ref or
+    net label.  This removes border-grid lines and isolated symbol decorations
+    that are far from all schematic content, without relying on colour."""
+    if not segs:
+        return segs
+
+    anchors: list[tuple[float, float]] = (
+        [(c.x, c.y) for c in comps]
+        + [(x, y) for _, x, y in net_labels]
+    )
+    if not anchors:
+        return segs  # nothing to anchor against – keep everything
+
+    # Build endpoint → segment-index adjacency (snapped to 1 pt grid)
+    ep_to_segs: dict[tuple[int, int], list[int]] = defaultdict(list)
+    for i, seg in enumerate(segs):
+        ep_to_segs[_snap(seg.x0, seg.y0)].append(i)
+        ep_to_segs[_snap(seg.x1, seg.y1)].append(i)
+
+    # Seed: any segment whose endpoint is close to a known anchor
+    seeds: set[int] = set()
+    for i, seg in enumerate(segs):
+        for ax, ay in anchors:
+            if (
+                _dist(seg.x0, seg.y0, ax, ay) < max_dist
+                or _dist(seg.x1, seg.y1, ax, ay) < max_dist
+            ):
+                seeds.add(i)
+                break
+
+    # BFS: transitively include all segments connected to seeds
+    kept: set[int] = set(seeds)
+    frontier = list(seeds)
+    while frontier:
+        idx = frontier.pop()
+        seg = segs[idx]
+        for k in (_snap(seg.x0, seg.y0), _snap(seg.x1, seg.y1)):
+            for j in ep_to_segs[k]:
+                if j not in kept:
+                    kept.add(j)
+                    frontier.append(j)
+
+    return [segs[i] for i in sorted(kept)]
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Connectivity: Union-Find over wire endpoint clusters
 # ──────────────────────────────────────────────────────────────────────────────
@@ -450,7 +509,7 @@ def _build_connectivity(
         if nodes:
             wires.append(DetectedWire(net_name=net_name, nodes=sorted(set(nodes)), confidence=0.95))
 
-    # ── Phase B: signal nets via wire topology ─────────────────────────────────
+    # ── Phase B: signal + power nets via wire topology ────────────────────────
     if not wire_segs:
         return wires
 
@@ -458,26 +517,34 @@ def _build_connectivity(
     uf.begin()
 
     for seg, _ in wire_segs:
+        length = ((seg.x1 - seg.x0) ** 2 + (seg.y1 - seg.y0) ** 2) ** 0.5
+        if length < _UF_MIN_SEG_LEN_PT:
+            # Short stubs contribute only component-proximity points, not topology
+            uf.add_point(seg.x0, seg.y0)
+            uf.add_point(seg.x1, seg.y1)
+            # intentionally no union() call — do not bridge separate nets
+            continue
         uf.add_point(seg.x0, seg.y0)
         uf.add_point(seg.x1, seg.y1)
         uf.union(_snap(seg.x0, seg.y0), _snap(seg.x1, seg.y1))
 
     uf.finalise()
 
-    # Signal net labels: anything not already used as a power label
-    power_names_lc = {n.lower() for n in power_by_name}
-    signal_labels = [
-        (name, x, y)
-        for name, x, y in net_label_positions
-        if name.lower() not in power_names_lc
-    ]
+    # Include ALL net labels (power and signal) so that power nets connected
+    # via wires (e.g. GND symbol at the end of a wire run) are detected here
+    # even when Phase A missed them due to component-position distance.
+    all_labels = net_label_positions
 
-    seen_net_names: set[str] = set()
+    # Initialise seen-names from Phase A so we merge rather than duplicate.
+    seen_net_names: set[str] = {w.net_name for w in wires}
+
+    named_roots: set[tuple[int, int]] = set()
 
     for root, points in uf.groups().items():
-        net_name = _nearest_label(points, signal_labels, _MAX_LABEL_DIST_PT)
+        net_name = _nearest_label(points, all_labels, _MAX_LABEL_DIST_PT)
         if net_name is None:
             continue
+        named_roots.add(root)
         if net_name in seen_net_names:
             # Merge into existing wire's nodes
             for w in wires:
@@ -489,6 +556,31 @@ def _build_connectivity(
 
         nodes = sorted(_comps_near_points(comp_positions, points))
         wires.append(DetectedWire(net_name=net_name, nodes=nodes, confidence=0.85))
+
+    # ── Phase C: unnamed wire clusters connecting 2+ components ───────────────
+    # Only emit if the node-set is new and not already fully covered by a named net.
+    named_node_sets = [frozenset(w.nodes) for w in wires]
+    seen_unnamed_keys: set[frozenset] = set()
+    auto_idx = 0
+    for root, points in uf.groups().items():
+        if root in named_roots:
+            continue
+        nodes = sorted(_comps_near_points(comp_positions, points))
+        if len(nodes) < 2:
+            continue
+        nodes_key = frozenset(nodes)
+        if nodes_key in seen_unnamed_keys:
+            continue
+        # Skip if every component pair is already co-located in a named net
+        if any(nodes_key <= ns for ns in named_node_sets):
+            continue
+        seen_unnamed_keys.add(nodes_key)
+        auto_idx += 1
+        wires.append(DetectedWire(
+            net_name=f"Net_{auto_idx}",
+            nodes=nodes,
+            confidence=0.6,
+        ))
 
     return wires
 
