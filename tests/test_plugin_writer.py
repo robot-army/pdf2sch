@@ -113,7 +113,7 @@ class TestWriterOutput(unittest.TestCase):
         model = _simple_model()
         out = render_kicad_schematic(model)
         for net in model.nets:
-            self.assertIn(f'(text "{net.name}")', out)
+            self.assertIn(f'(global_label "{net.name}"', out)
 
     def test_lib_symbols_section_present(self):
         out = render_kicad_schematic(_simple_model())

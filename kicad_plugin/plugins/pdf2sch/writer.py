@@ -727,6 +727,11 @@ def _mm(val: float) -> str:
     return f"{val:.4f}".rstrip("0").rstrip(".")
 
 
+def _sexp_str(s: str) -> str:
+    """Escape a string for embedding inside KiCad S-expression double-quotes."""
+    return s.replace("\\", "\\\\").replace('"', '\\"')
+
+
 def _extract_pin_numbers(lib_def: str) -> list[str]:
     """Return the ordered list of pin numbers declared in a lib symbol string.
 
@@ -1050,8 +1055,7 @@ def _net_labels(lines: list[str], model: "SchematicModel", n_cols: int) -> None:
                 continue
             placed.add(key)
             lines += [
-                "  (global_label",
-                f'    (text "{net_name}")',
+                f'  (global_label "{_sexp_str(net_name)}"',
                 "    (shape bidirectional)",
                 f"    (at {_mm(label_x)} {_mm(label_y)} 0)",
                 "    (fields_autoplaced yes)",
