@@ -142,7 +142,19 @@ def detect(pdf_path: str) -> DetectionOutput:
         for seg in filtered:
             all_wire_segs.append((seg, page_idx))
 
-    symbols = [DetectedSymbol(ref=c.ref, value=c.value) for c in all_components]
+    # Infer component centres and pin-axis from nearby wire-endpoint geometry.
+    centers = _infer_component_centers_and_axes(all_components, all_wire_segs)
+
+    symbols = [
+        DetectedSymbol(
+            ref=c.ref,
+            value=c.value,
+            x_pts=centers.get(c.ref, (c.x, c.y, ""))[0],
+            y_pts=centers.get(c.ref, (c.x, c.y, ""))[1],
+            pin_axis=centers.get(c.ref, (c.x, c.y, ""))[2],
+        )
+        for c in all_components
+    ]
 
     wires = _build_connectivity(
         all_components,
@@ -150,12 +162,43 @@ def detect(pdf_path: str) -> DetectionOutput:
         all_net_label_positions,
     )
 
+    # Annotate each wire with the best wire-endpoint position for its label.
+    _pts_to_mm = 25.4 / 72.0
+    label_lookup: dict[str, tuple[float, float]] = {
+        name: (lx, ly) for name, lx, ly in all_net_label_positions
+    }
+    for wire in wires:
+        pos = label_lookup.get(wire.net_name)
+        if pos is None:
+            continue
+        endpoint = _label_wire_endpoint(pos[0], pos[1], all_wire_segs)
+        if endpoint is not None:
+            wire.label_x_pts, wire.label_y_pts, wire.label_angle = endpoint
+        else:
+            wire.label_x_pts = pos[0]
+            wire.label_y_pts = pos[1]
+            wire.label_angle = 0
+
+    # Long wire segments in mm — passed through to the writer for rendering.
+    wire_segments_mm: list[tuple[float, float, float, float]] = [
+        (
+            seg.x0 * _pts_to_mm,
+            seg.y0 * _pts_to_mm,
+            seg.x1 * _pts_to_mm,
+            seg.y1 * _pts_to_mm,
+        )
+        for seg, _ in all_wire_segs
+        if ((seg.x1 - seg.x0) ** 2 + (seg.y1 - seg.y0) ** 2) ** 0.5 >= _UF_MIN_SEG_LEN_PT
+    ]
+
     return DetectionOutput(
         symbols=symbols,
         wires=wires,
         text_items=sorted({name for name, *_ in all_net_label_positions}),
         pages=len(doc),
+        wire_segments=wire_segments_mm,
     )
+
 
 
 class PDFDetector:
@@ -621,3 +664,99 @@ def _comps_near_points(
 def _dist(x0: float, y0: float, x1: float, y1: float) -> float:
     dx, dy = x0 - x1, y0 - y1
     return (dx * dx + dy * dy) ** 0.5
+
+
+def _infer_component_centers_and_axes(
+    components: list[_Component],
+    wire_segs: list[tuple[_WireSeg, int]],
+    search_radius: float = _MAX_COMP_DIST_PT,
+    min_seg_len: float = _UF_MIN_SEG_LEN_PT,
+) -> dict[str, tuple[float, float, str]]:
+    """Return ``{ref: (cx_pts, cy_pts, pin_axis)}`` for each component.
+
+    For each long wire segment that has at least one endpoint within
+    *search_radius* PDF-points of the component text position, the endpoint
+    **closest** to that text is taken as a candidate pin connection point.
+    The component centre is then the midpoint of the bounding box formed by
+    those candidate pin points.
+
+    Using the closest (rather than all) endpoints avoids "pollution" from
+    adjacent components whose stubs lie within the search radius.
+
+    ``pin_axis`` is ``"H"`` / ``"V"`` / ``""`` as before.  Falls back to the
+    component text position when fewer than two candidate pin points exist.
+    """
+    result: dict[str, tuple[float, float, str]] = {}
+    for comp in components:
+        pin_pts: list[tuple[float, float]] = []
+        for seg, _ in wire_segs:
+            seg_len = ((seg.x1 - seg.x0) ** 2 + (seg.y1 - seg.y0) ** 2) ** 0.5
+            if seg_len < min_seg_len:
+                continue
+            d0 = _dist(comp.x, comp.y, seg.x0, seg.y0)
+            d1 = _dist(comp.x, comp.y, seg.x1, seg.y1)
+            if min(d0, d1) >= search_radius:
+                continue
+            # Take the endpoint that is closer to the component (the pin end).
+            pin_pts.append((seg.x0, seg.y0) if d0 <= d1 else (seg.x1, seg.y1))
+
+        if len(pin_pts) >= 2:
+            xs = [p[0] for p in pin_pts]
+            ys = [p[1] for p in pin_pts]
+            cx = (min(xs) + max(xs)) / 2.0
+            cy = (min(ys) + max(ys)) / 2.0
+            span_x = max(xs) - min(xs)
+            span_y = max(ys) - min(ys)
+            if span_x > span_y + 1.0:
+                axis = "H"
+            elif span_y > span_x + 1.0:
+                axis = "V"
+            else:
+                axis = ""  # square bounding box — ambiguous
+        else:
+            # Not enough wire data; keep the text position as a rough estimate.
+            cx, cy = comp.x, comp.y
+            axis = ""
+
+        result[comp.ref] = (cx, cy, axis)
+    return result
+
+
+def _label_wire_endpoint(
+    label_x: float,
+    label_y: float,
+    wire_segs: list[tuple[_WireSeg, int]],
+    max_dist: float = 40.0,
+    min_seg_len: float = _UF_MIN_SEG_LEN_PT,
+) -> tuple[float, float, int] | None:
+    """Find the long-wire endpoint nearest to the label text at *(label_x, label_y)*.
+
+    Returns ``(endpoint_x, endpoint_y, angle_deg)`` where *angle_deg* is the
+    KiCad rotation angle (CCW) that makes the global-label connection stub face
+    the incoming wire.  Returns ``None`` if no endpoint is within *max_dist*.
+    """
+    best_dist = max_dist
+    best: tuple[float, float, int] | None = None
+    for seg, _ in wire_segs:
+        seg_len = ((seg.x1 - seg.x0) ** 2 + (seg.y1 - seg.y0) ** 2) ** 0.5
+        if seg_len < min_seg_len:
+            continue
+        for (px, py), (ox, oy) in (
+            ((seg.x0, seg.y0), (seg.x1, seg.y1)),
+            ((seg.x1, seg.y1), (seg.x0, seg.y0)),
+        ):
+            d = _dist(px, py, label_x, label_y)
+            if d >= best_dist:
+                continue
+            best_dist = d
+            # Direction from endpoint toward the other wire end: that is the
+            # direction the connection stub should point (facing the wire).
+            dx, dy = ox - px, oy - py
+            if abs(dx) >= abs(dy):
+                angle = 0 if dx > 0 else 180
+            else:
+                # KiCad y increases downward: dy<0 means wire goes up on screen.
+                angle = 270 if dy < 0 else 90
+            best = (px, py, angle)
+    return best
+

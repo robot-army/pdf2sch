@@ -674,6 +674,7 @@ def render_kicad_schematic(
     all_sym_paths: list[str] = list(sym_lib_paths or []) + _KICAD_SYM_SEARCH_PATHS
     lib_defs = _lib_symbols(lines, model, all_sym_paths)
     _symbol_instances(lines, model, sheet_uuid, lib_defs, n_cols, project_name)
+    _wire_segments(lines, model)
     _net_labels(lines, model, n_cols)
     if overlay_pdf is not None:
         _bitmap_overlay(lines, overlay_pdf)
@@ -961,12 +962,17 @@ def _symbol_instances(
     project_name: str = "",
 ) -> None:
     for idx, comp in enumerate(model.components):
-        x, y = _grid_position(idx, n_cols)
+        # Use PDF-derived position when available; fall back to uniform grid.
+        if comp.x_mm or comp.y_mm:
+            x, y = comp.x_mm, comp.y_mm
+        else:
+            x, y = _grid_position(idx, n_cols)
+        angle = getattr(comp, "angle", 0.0)
         sym_uuid = _uid()
         lines += [
             "  (symbol",
             f'    (lib_id "{comp.symbol}")',
-            f"    (at {_mm(x)} {_mm(y)} 0)",
+            f"    (at {_mm(x)} {_mm(y)} {int(angle)})",
             "    (unit 1)",
             "    (exclude_from_sim no)",
             "    (in_bom yes)",
@@ -1027,10 +1033,48 @@ def _symbol_instances(
 
 
 def _net_labels(lines: list[str], model: "SchematicModel", n_cols: int) -> None:
-    """Place a global net label near every component that appears in a net."""
+    """Place global net labels for every named net that has a detected label position.
+
+    When the net carries PDF-derived label coordinates (``label_x_mm``,
+    ``label_y_mm``), a single global label is placed at that wire endpoint.
+    Otherwise the old grid-offset fallback is used so that unlocalised nets
+    (e.g. from unit-test models) still appear in the output.
+    """
+    placed: set[str] = set()  # (net_name, mm_x, mm_y) — avoid duplicates
+
+    # ── Pass 1: PDF-derived label positions ──────────────────────────────────
+    for net in model.nets:
+        lx = getattr(net, "label_x_mm", 0.0)
+        ly = getattr(net, "label_y_mm", 0.0)
+        if not lx and not ly:
+            continue
+        angle = getattr(net, "label_angle", 0)
+        key = f"{net.name}@{_mm(lx)},{_mm(ly)}"
+        if key in placed:
+            continue
+        placed.add(key)
+        lines += [
+            f'  (global_label "{_sexp_str(net.name)}"',
+            "    (shape bidirectional)",
+            f"    (at {_mm(lx)} {_mm(ly)} {angle})",
+            "    (fields_autoplaced yes)",
+            "    (effects (font (size 1.27 1.27)) (justify left))",
+            f'    (uuid "{_uid()}")',
+            '    (property "Intersheet References" ""',
+            "      (at 0 0 0)",
+            "      (effects (font (size 1.27 1.27)) (hide yes))",
+            "    )",
+            "  )",
+        ]
+
+    # ── Pass 2: Grid-offset fallback for nets without position data ──────────
     # Build a mapping: ref → list[(net_name, pin_number)]
     ref_pins: dict[str, list[tuple[str, str]]] = {}
     for net in model.nets:
+        lx = getattr(net, "label_x_mm", 0.0)
+        ly = getattr(net, "label_y_mm", 0.0)
+        if lx or ly:
+            continue  # already handled above
         for node in net.nodes:
             if "." in node:
                 ref, pin = node.rsplit(".", 1)
@@ -1038,18 +1082,28 @@ def _net_labels(lines: list[str], model: "SchematicModel", n_cols: int) -> None:
                 ref, pin = node, "1"
             ref_pins.setdefault(ref, []).append((net.name, pin))
 
-    # Index components by ref
-    comp_idx: dict[str, int] = {c.ref: i for i, c in enumerate(model.components)}
+    if not ref_pins:
+        return
 
-    placed: set[str] = set()  # avoid duplicate labels at the same position
+    # Index components by ref; use PDF position when available.
+    comp_pos: dict[str, tuple[float, float]] = {}
+    comp_idx: dict[str, int] = {}
+    for i, c in enumerate(model.components):
+        comp_idx[c.ref] = i
+        if getattr(c, "x_mm", 0.0) or getattr(c, "y_mm", 0.0):
+            comp_pos[c.ref] = (c.x_mm, c.y_mm)
+
     for ref, pin_entries in ref_pins.items():
         idx = comp_idx.get(ref)
         if idx is None:
             continue
-        x, y = _grid_position(idx, n_cols)
+        if ref in comp_pos:
+            cx, cy = comp_pos[ref]
+        else:
+            cx, cy = _grid_position(idx, n_cols)
         for pin_offset, (net_name, _pin) in enumerate(pin_entries):
-            label_x = x + _LABEL_OFFSET_MM
-            label_y = y - _LABEL_OFFSET_MM + pin_offset * 2.54
+            label_x = cx + _LABEL_OFFSET_MM
+            label_y = cy - _LABEL_OFFSET_MM + pin_offset * 2.54
             key = f"{net_name}@{_mm(label_x)},{_mm(label_y)}"
             if key in placed:
                 continue
@@ -1067,6 +1121,21 @@ def _net_labels(lines: list[str], model: "SchematicModel", n_cols: int) -> None:
                 "    )",
                 "  )",
             ]
+
+
+def _wire_segments(lines: list[str], model: "SchematicModel") -> None:
+    """Emit PDF-derived wire segments as KiCad ``(wire ...)`` elements."""
+    segments = getattr(model, "wire_segments", None)
+    if not segments:
+        return
+    for x0, y0, x1, y1 in segments:
+        lines += [
+            "  (wire",
+            f"    (pts (xy {_mm(x0)} {_mm(y0)}) (xy {_mm(x1)} {_mm(y1)}))",
+            "    (stroke (width 0) (type default))",
+            f'    (uuid "{_uid()}")',
+            "  )",
+        ]
 
 
 def _bitmap_overlay(lines: list[str], pdf_path: str) -> None:

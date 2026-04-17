@@ -3,6 +3,47 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, Iterable
 
+# ---------------------------------------------------------------------------
+# Coordinate helpers
+# ---------------------------------------------------------------------------
+
+# PDF points to mm: 1 pt = 1/72 inch = 25.4/72 mm
+_PTS_TO_MM: float = 25.4 / 72.0
+
+# KiCad schematic grid: 50 mil = 1.27 mm
+_GRID_MM: float = 1.27
+
+
+def _snap_mm(v: float) -> float:
+    """Round *v* (mm) to the nearest KiCad 50-mil grid point."""
+    return round(v / _GRID_MM) * _GRID_MM
+
+
+# Symbols whose default pin axis is **vertical** (pins at ±y from centre).
+# All others are assumed horizontal (pins at ±x from centre).
+_VERT_PIN_SYMBOLS: frozenset[str] = frozenset({
+    "Device:R",
+    "Device:C",
+    "Device:L",
+    "Device:Ferrite_Bead",
+    "Device:Fuse",
+    "Device:Crystal",
+})
+
+
+def _comp_angle(lib_id: str, pin_axis: str) -> float:
+    """Return the KiCad CCW rotation angle (0 or 90) for a component.
+
+    *pin_axis* is ``"H"`` when the detected wires connect left/right to the
+    component (horizontal wire axis) and ``"V"`` when they connect top/bottom.
+    The returned angle makes the symbol's default pin axis line up with the
+    wire axis.
+    """
+    sym_vert = lib_id in _VERT_PIN_SYMBOLS   # True → default pins at ±y
+    wire_horiz = pin_axis == "H"              # True → wires run left/right
+    # Mismatch → need 90° CCW rotation so pins align with the wire direction.
+    return 90.0 if sym_vert == wire_horiz else 0.0
+
 
 @dataclass
 class PipelineConfig:
@@ -32,6 +73,13 @@ class DetectedSymbol:
     ref: str
     value: str
     footprint_hint: str | None = None
+    # PDF-space position of the component centre (points at 72 dpi).
+    # 0.0 means unknown / not detected.
+    x_pts: float = 0.0
+    y_pts: float = 0.0
+    # Inferred pin axis: "H" = horizontal pins (LED/D style),
+    # "V" = vertical pins (R/C/L style), "" = unknown.
+    pin_axis: str = ""
 
 
 @dataclass
@@ -39,6 +87,12 @@ class DetectedWire:
     net_name: str
     nodes: list[str]
     confidence: float = 1.0
+    # Wire-endpoint (PDF points) where a net label should be placed.
+    # 0.0/0.0 means unknown; use name-only global label fallback.
+    label_x_pts: float = 0.0
+    label_y_pts: float = 0.0
+    # Rotation angle (degrees, CCW) for the net label.
+    label_angle: int = 0
 
 
 @dataclass
@@ -48,6 +102,8 @@ class DetectionOutput:
     text_items: list[str]
     pages: int = 1
     hierarchical_blocks: list[str] = field(default_factory=list)
+    # Wire geometry in mm (x0, y0, x1, y1) — emitted as KiCad wire elements.
+    wire_segments: list[tuple[float, float, float, float]] = field(default_factory=list)
 
 
 @dataclass
@@ -56,12 +112,22 @@ class Component:
     value: str
     symbol: str
     footprint: str
+    # Schematic placement coordinates in mm.  0/0 falls back to grid placement.
+    x_mm: float = 0.0
+    y_mm: float = 0.0
+    # KiCad rotation angle in degrees (CCW).
+    angle: float = 0.0
 
 
 @dataclass
 class Net:
     name: str
     nodes: list[str]
+    # Where to place the net label in the schematic (mm).  0/0 = use fallback.
+    label_x_mm: float = 0.0
+    label_y_mm: float = 0.0
+    # KiCad rotation angle (degrees, CCW) for the label element.
+    label_angle: int = 0
 
 
 @dataclass
@@ -72,6 +138,8 @@ class SchematicModel:
     hierarchical_blocks: list[str] = field(default_factory=list)
     review_questions: list[str] = field(default_factory=list)
     review_net_indices: list[int] = field(default_factory=list)
+    # Wire geometry from the PDF (mm) — emitted verbatim as KiCad wire elements.
+    wire_segments: list[tuple[float, float, float, float]] = field(default_factory=list)
 
 
 class PDF2SchPipeline:
@@ -124,15 +192,19 @@ class PDF2SchPipeline:
                     # Replace but keep insertion order by updating in-place.
                     deduped[sym.ref] = sym
         components = [
-            Component(
-                ref=s.ref,
-                value=s.value,
-                symbol=self._guess_symbol(s.ref, s.value),
-                footprint="",  # footprint assignment out of scope for PDF import
-            )
+            self._make_component(s)
             for s in deduped.values()
         ]
-        nets = [Net(name=w.net_name, nodes=w.nodes[:]) for w in detection.wires]
+        nets = [
+            Net(
+                name=w.net_name,
+                nodes=w.nodes[:],
+                label_x_mm=w.label_x_pts * _PTS_TO_MM,
+                label_y_mm=w.label_y_pts * _PTS_TO_MM,
+                label_angle=w.label_angle,
+            )
+            for w in detection.wires
+        ]
         review_questions: list[str] = []
         review_net_indices: list[int] = []
         for net_idx, w in enumerate(detection.wires):
@@ -150,7 +222,25 @@ class PDF2SchPipeline:
             hierarchical_blocks=detection.hierarchical_blocks,
             review_questions=review_questions,
             review_net_indices=review_net_indices,
+            wire_segments=list(detection.wire_segments),
         )
+
+    def _make_component(self, sym: "DetectedSymbol") -> "Component":
+        """Construct a Component, computing position and rotation from detection data."""
+        lib_id = self._guess_symbol(sym.ref, sym.value)
+        x_mm = _snap_mm(sym.x_pts * _PTS_TO_MM) if sym.x_pts else 0.0
+        y_mm = _snap_mm(sym.y_pts * _PTS_TO_MM) if sym.y_pts else 0.0
+        angle = _comp_angle(lib_id, sym.pin_axis) if sym.pin_axis else 0.0
+        return Component(
+            ref=sym.ref,
+            value=sym.value,
+            symbol=lib_id,
+            footprint="",
+            x_mm=x_mm,
+            y_mm=y_mm,
+            angle=angle,
+        )
+
 
     def _guess_symbol(self, ref: str, value: str) -> str:
         import re as _re
