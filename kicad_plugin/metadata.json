@@ -1,0 +1,28 @@
+{
+  "identifier": "com.robot-army.pdf2sch",
+  "name": "pdf2sch",
+  "description": "Import a PDF schematic and generate a KiCad 9 schematic",
+  "description_full": "pdf2sch detects components, wires, and text from a PDF schematic, builds a structured component/netlist model with a human-in-the-loop review step for low-confidence nets, and writes a valid KiCad 9 .kicad_sch file. It can also import PDF pages as rasterised background images so you can trace over them inside the schematic editor.",
+  "type": "plugin",
+  "author": {
+    "name": "robot-army",
+    "contact": {
+      "web": "https://github.com/robot-army/pdf2sch"
+    }
+  },
+  "license": "MIT",
+  "resources": {
+    "homepage": "https://github.com/robot-army/pdf2sch"
+  },
+  "versions": [
+    {
+      "version": "0.1.0",
+      "status": "development",
+      "kicad_version": "9.0",
+      "platforms": ["linux"],
+      "download_sha256": "",
+      "download_size": 0,
+      "install_size": 0
+    }
+  ]
+}

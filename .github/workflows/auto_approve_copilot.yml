@@ -1,0 +1,29 @@
+name: Auto-approve Copilot workflow runs
+
+# This workflow must live on the default branch (main) to run without manual
+# approval itself.  It fires whenever another workflow run is "requested"
+# (i.e. created – including runs that are paused waiting for approval), checks
+# whether the triggering actor is the Copilot coding agent, and approves the
+# run automatically so no human needs to click "Approve and run".
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+      - "KiCad 9 Integration & Screenshots"
+    types:
+      - requested
+
+jobs:
+  auto-approve:
+    # Only approve runs triggered by the Copilot coding agent.
+    if: github.event.workflow_run.actor.login == 'copilot-swe-agent[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Approve pending workflow run
+        run: gh run approve "$RUN_ID" --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}

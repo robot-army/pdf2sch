@@ -1,0 +1,177 @@
+name: KiCad 9 Integration & Screenshots
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  # Allow manual re-runs to regenerate screenshots
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kicad-screenshot:
+    name: Generate schematic + export SVG screenshots
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Cache the downloaded KiCad .deb files so that subsequent runs skip the
+      # ~500 MB PPA download.  The key includes the workflow file hash so the
+      # cache is invalidated if the install steps change.
+      - name: Cache KiCad apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: kicad9-apt-${{ runner.os }}-${{ hashFiles('.github/workflows/kicad_integration.yml') }}
+          restore-keys: |
+            kicad9-apt-${{ runner.os }}-
+
+      - name: Install KiCad 9
+        run: |
+          sudo add-apt-repository --yes ppa:kicad/kicad-9.0-releases
+          sudo apt-get update
+          # kicad-cli is part of the main kicad package; install without
+          # recommended extras to keep the download size manageable.
+          sudo apt-get install -y --no-install-recommends kicad
+
+      # KiCad 9 ships its own Python interpreter.  We use the system Python for
+      # the generation step (pure Python, no pcbnew calls) so we don't need to
+      # locate KiCad's bundled interpreter.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      # ── realsmall (minimal: 1 LED, 1 R, power, GND) ─────────────────────
+      - name: Generate realsmall schematic from PDF
+        run: |
+          python scripts/generate_sample_sch.py \
+            test-data/realsmall-pdf2sch/realsmall/realsmall.pdf \
+            /tmp/realsmall.kicad_sch
+
+      - name: Verify realsmall schematic was created
+        run: |
+          test -f /tmp/realsmall.kicad_sch
+          test -f /tmp/realsmall.kicad_pro
+          echo "--- .kicad_pro ---"
+          cat /tmp/realsmall.kicad_pro
+          echo "--- first 30 lines of .kicad_sch ---"
+          head -30 /tmp/realsmall.kicad_sch
+
+      # Sanity-check: verify kicad-cli can load the GROUND-TRUTH realsmall
+      # schematic (which ships with its own .kicad_pro) before we test our
+      # generated one.  If this fails the issue is with kicad-cli itself, not
+      # our format.
+      - name: Verify ground-truth realsmall loads in kicad-cli
+        run: |
+          mkdir -p screenshots
+          kicad-cli sch export svg \
+            --output screenshots/ \
+            test-data/realsmall-pdf2sch/realsmall/realsmall.kicad_sch
+          echo "--- ground-truth SVG generated ---"
+          ls -lh screenshots/
+
+      - name: Export realsmall to SVG (kicad-cli)
+        run: |
+          mkdir -p screenshots
+          kicad-cli sch export svg \
+            --output screenshots/ \
+            /tmp/realsmall.kicad_sch
+          echo "--- generated files ---"
+          ls -lh screenshots/
+
+      # ── stickhub (larger real-world schematic) ───────────────────────────
+      - name: Generate stickhub schematic from PDF
+        run: |
+          python scripts/generate_sample_sch.py \
+            test-data/stickhub-pdf2sch/stickhub-pdf2sch.pdf \
+            /tmp/stickhub.kicad_sch
+
+      - name: Verify stickhub schematic was created
+        run: |
+          test -f /tmp/stickhub.kicad_sch
+          echo "--- first 30 lines ---"
+          head -30 /tmp/stickhub.kicad_sch
+
+      - name: Export stickhub to SVG (kicad-cli)
+        run: |
+          kicad-cli sch export svg \
+            --output screenshots/ \
+            /tmp/stickhub.kicad_sch
+          echo "--- generated files ---"
+          ls -lh screenshots/
+
+      # ── cn0359 (Analog Devices eval board, multi-page, ~100 components) ──
+      - name: Generate cn0359 schematic from PDF
+        run: |
+          python scripts/generate_sample_sch.py \
+            test-data/cn0359-AnalogDevices-pdf2sch/eval-cn0359-eb1z-padsschematic-reva.pdf \
+            /tmp/cn0359.kicad_sch
+
+      - name: Verify cn0359 schematic was created
+        run: |
+          test -f /tmp/cn0359.kicad_sch
+          echo "--- first 30 lines ---"
+          head -30 /tmp/cn0359.kicad_sch
+
+      - name: Export cn0359 to SVG (kicad-cli)
+        run: |
+          kicad-cli sch export svg \
+            --output screenshots/ \
+            /tmp/cn0359.kicad_sch
+          echo "--- generated files ---"
+          ls -lh screenshots/
+
+      - name: Convert SVGs to PNG for preview (ImageMagick)
+        run: |
+          sudo apt-get install -y --no-install-recommends imagemagick
+          for svg in screenshots/*.svg; do
+            png="${svg%.svg}.png"
+            # Render at 150 dpi then resize to max 1200px wide so the files stay
+            # small enough to embed inline in the job summary (GitHub limit: 1 MB
+            # per summary file).
+            convert -density 150 -background white -alpha remove \
+              -resize '1200x>' "$svg" "$png" \
+              && echo "Converted $svg → $png" \
+              || echo "WARNING: failed to convert $svg"
+          done
+
+      # Write an HTML job summary so every PNG is visible inline on the Actions
+      # page — no zip download needed, works in Chrome on Android.
+      - name: Write inline image summary
+        run: |
+          echo "## Schematic screenshots" >> "$GITHUB_STEP_SUMMARY"
+          for png in $(ls screenshots/*.png | sort); do
+            name=$(basename "${png%.png}")
+            b64=$(base64 -w 0 "$png")
+            printf '\n### %s\n\n<img src="data:image/png;base64,%s" alt="%s" style="max-width:100%%;">\n' \
+              "$name" "$b64" "$name" >> "$GITHUB_STEP_SUMMARY"
+            echo "Added $name to summary ($(wc -c < "$png") bytes)"
+          done
+
+      - name: Upload schematic screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: schematic-screenshots
+          path: |
+            screenshots/*.svg
+            screenshots/*.png
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload generated schematics
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-schematics
+          path: |
+            /tmp/realsmall.kicad_sch
+            /tmp/stickhub.kicad_sch
+            /tmp/cn0359.kicad_sch
+          retention-days: 90
